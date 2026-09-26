@@ -10,6 +10,7 @@ import { drawProjectiles as renderProjectiles } from './src/render/projectiles.j
 import { AFFINITIES } from './src/data/upgrades.js';
 import { STARTER_WEAPON_ID, getWeapon } from './src/data/weapons.js';
 import { buildUpgradePool, applyUpgradeEffects } from './src/systems/upgrades.js';
+import { injectAnomalyOffer } from './src/systems/anomalies.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
@@ -392,7 +393,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     const rarityWeight = { common: 1, uncommon: 1.15, rare: 1.25 };
     const pool = buildUpgradePool(player).map(up => ({ ...up, score: Math.random() * rarityWeight[up.rarity] }));
     pool.sort((a, b) => b.score - a.score);
-    return pool.slice(0, 3);
+    return injectAnomalyOffer(player, pool.slice(0, 3));
   }
 
   function openUpgrade() {
@@ -402,16 +403,22 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     for (const up of pickUpgrades()) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'upgrade-card';
+      btn.className = `upgrade-card${up.kind === 'anomaly' ? ' anomaly-card' : ''}`;
       const affinity = AFFINITIES[up.affinity];
-      btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><span class="upgrade-affinity affinity-${up.affinity}">${affinity.label}<b>${affinity.code}</b></span><h3>${up.name}</h3><p>${up.desc}</p><em>${up.rarity}</em><small>选择强化 →</small>`;
+      const tradeoff = up.kind === 'anomaly'
+        ? `<div class="anomaly-tradeoff"><span>收益 · ${up.upside}</span><b>代价 · ${up.downside}</b></div>`
+        : '';
+      btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><span class="upgrade-affinity affinity-${up.affinity}">${affinity.label}<b>${affinity.code}</b></span><h3>${up.name}</h3><p>${up.desc}</p>${tradeoff}<em>${up.rarity}</em><small>${up.kind === 'anomaly' ? '接受异常 →' : '选择强化 →'}</small>`;
       btn.addEventListener('click', () => {
         applyUpgradeEffects(player, up);
         const unlocked = syncResonances(player);
         ui.levelUpScreen.classList.add('hidden');
         state.mode = 'playing';
         lastFrame = performance.now();
-        if (unlocked.length) {
+        if (up.kind === 'anomaly') {
+          banner(`异常 · ${up.name}`);
+          showToast(`${up.upside} / ${up.downside}`, 1800);
+        } else if (unlocked.length) {
           const resonance = unlocked[0];
           banner(`共鸣 · ${resonance.name}`);
           showToast(resonance.description, 1900);
@@ -887,6 +894,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     if (player.phaseGuardTimer > 0) tags.push('月步护幕');
     const resonanceCount = getActiveResonances(player).length;
     if (resonanceCount) tags.push(`共鸣 ${resonanceCount}`);
+    if (player.anomalies.length) tags.push(`异常 ${player.anomalies.length}`);
     ui.buildTags.innerHTML = tags.map(t => `<span>${t}</span>`).join('');
   }
 
