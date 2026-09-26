@@ -16,7 +16,7 @@
         <span class="brand-copy"><b>VOID DESCENT</b><small>CELESTIAL RUIN // PROTOTYPE</small></span>
       </div>
       <div class="top-actions">
-        <span class="build-tag">ALPHA 0.2</span>
+        <span class="build-tag">ALPHA 0.3</span>
         <button id="pauseBtn" class="ghost-btn" type="button" aria-label="暂停">暂停</button>
       </div>
     </header>
@@ -36,6 +36,9 @@
           <div class="bar hp-bar"><i id="hpFill"></i><span></span></div>
           <div class="bar xp-bar"><i id="xpFill"></i><span></span></div>
           <div id="buildTags" class="build-tags"></div>
+          <div class="dash-readout" aria-label="相位冲刺冷却">
+            <span>PHASE</span><i><b id="dashFill"></b></i><strong id="dashText">READY</strong>
+          </div>
         </div>
         <div class="hud-center">
           <small id="stageText">星落回廊</small>
@@ -106,12 +109,14 @@
       </section>
 
       <div id="toast" class="toast hidden"></div>
-      <div id="touchHint" class="touch-hint">拖动左侧区域移动</div>
+      <button id="dashBtn" class="dash-btn" type="button" aria-label="相位冲刺"><span>PHASE</span><b>冲刺</b></button>
+      <div id="debugPanel" class="debug-panel hidden" aria-live="polite"></div>
+      <div id="touchHint" class="touch-hint">拖动左侧区域移动 · 右侧按钮冲刺</div>
     </section>
 
     <footer>
       <span><i class="status-dot"></i> CELESTIAL RUIN VISUAL PASS // ACTIVE</span>
-      <span>WASD / 方向键移动 · P / Esc 暂停</span>
+      <span>WASD / 方向键移动 · Space / Shift 相位冲刺 · P / Esc 暂停</span>
     </footer>
   </main>
   <script src="game.js"></script>
