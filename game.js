@@ -695,7 +695,7 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
     }
 
     simulateHazards(state, player, dt, takePlayerHit, addRing);
-    if (state.mode === 'gameover') return;
+    if (state.mode === 'dying' || state.mode === 'gameover') return;
 
     player.fireTimer -= dt;
     const target = nearestEnemy();
@@ -811,7 +811,7 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
           e.y -= baseDirY * enemyKick;
           addRing(player.x, player.y, 34, '#ff8da0', 2.6, .2);
         }
-        if (state.mode === 'gameover') return;
+        if (state.mode === 'dying' || state.mode === 'gameover') return;
       }
     }
 
