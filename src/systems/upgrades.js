@@ -38,6 +38,8 @@ export function applyUpgradeEffects(player, upgrade) {
       player[effect.stat] = Math.max(effect.floor, player[effect.stat] + effect.value);
     } else if (effect.op === 'heal') {
       player.hp = Math.min(player.maxHp, player.hp + effect.value);
+    } else if (effect.op === 'clampHp') {
+      player.hp = Math.min(player.hp, player.maxHp);
     } else {
       throw new Error(`Unknown upgrade effect operation: ${effect.op}`);
     }
@@ -45,5 +47,9 @@ export function applyUpgradeEffects(player, upgrade) {
 
   if (upgrade.affinity) {
     player.affinities[upgrade.affinity] = (player.affinities[upgrade.affinity] || 0) + 1;
+  }
+
+  if (upgrade.kind === 'anomaly' && !player.anomalies.includes(upgrade.id)) {
+    player.anomalies.push(upgrade.id);
   }
 }
