@@ -1,9 +1,12 @@
+import { SECTOR_ONE_TUNING } from '../config/sector-one-balance.js';
+
 const STORAGE_KEY = 'void-descent-playtest-v1';
 const MAX_RUNS = 40;
 
 export function createRunTelemetry(weaponId = null) {
   return {
     schema: 1,
+    balanceRevision: SECTOR_ONE_TUNING.revision,
     startedAt: Date.now(),
     weaponId,
     damageTaken: 0,
@@ -77,6 +80,7 @@ export function finalizeRunTelemetry(state, player, resonances = []) {
   const telemetry = state.telemetry || createRunTelemetry(player.weaponId);
   return {
     schema: 1,
+    balanceRevision: telemetry.balanceRevision || SECTOR_ONE_TUNING.revision,
     timestamp: Date.now(),
     weaponId: player.weaponId,
     weaponName: player.weaponName,
