@@ -15,6 +15,14 @@ export const RESONANCES = Object.freeze([
     description: '相位冲刺可周期性生成短暂的一次性相位护幕。',
   },
   {
+    id: 'event-horizon-choir',
+    name: '视界合唱',
+    code: 'EVENT HORIZON CHOIR',
+    requirements: { void: 3, lunar: 2 },
+    weaponTags: ['orbit'],
+    description: '环冕周期性坍缩局部空间，牵引附近敌人并造成一次同步切割。',
+  },
+  {
     id: 'blackstar-rupture',
     name: '黑星破裂',
     code: 'BLACKSTAR RUPTURE',
