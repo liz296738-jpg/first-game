@@ -4,6 +4,9 @@ function requirementValue(player, requirement) {
   if (requirement.source === 'affinity') {
     return player.affinities?.[requirement.key] || 0;
   }
+  if (requirement.source === 'weaponTag') {
+    return player.weaponTags?.includes(requirement.key) ?? false;
+  }
 
   return player[requirement.key];
 }
@@ -15,6 +18,8 @@ export function meetsUpgradeRequirements(player, upgrade) {
     if (requirement.min !== undefined && value < requirement.min) return false;
     if (requirement.max !== undefined && value > requirement.max) return false;
     if (requirement.equals !== undefined && value !== requirement.equals) return false;
+    if (requirement.truthy === true && !value) return false;
+    if (requirement.truthy === false && value) return false;
 
     return true;
   });
