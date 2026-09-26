@@ -11,6 +11,7 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
+import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/projectiles.js';
 
 (() => {
   'use strict';
@@ -731,26 +732,9 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
       }
     }
 
-    for (const p of state.projectiles) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-      if (p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) p.life = 0;
-    }
-
-    for (const p of state.enemyProjectiles) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-      const rr = player.r + p.r;
-      const dx = p.x - player.x, dy = p.y - player.y;
-      if (dx * dx + dy * dy <= rr * rr) {
-        takePlayerHit(p.damage);
-        p.life = 0;
-        addRing(p.x, p.y, 34, p.color, 3, .24);
-        if (state.mode === 'gameover') return;
-      }
-    }
+    updatePlayerProjectiles(state, dt, W, H, damageEnemy);
+    updateEnemyProjectiles(state, player, dt, takePlayerHit, addRing);
+    if (state.mode === 'dying' || state.mode === 'gameover') return;
 
     for (const e of state.enemies) {
       if (e.dead) continue;
@@ -825,30 +809,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
 
     applyEnemySeparation(dt);
 
-    for (let pi = state.projectiles.length - 1; pi >= 0; pi--) {
-      const p = state.projectiles[pi];
-      if (p.life <= 0) { state.projectiles.splice(pi, 1); continue; }
-      let remove = false;
-      for (let ei = 0; ei < state.enemies.length; ei++) {
-        const e = state.enemies[ei];
-        if (e.dead || p.hitIds.has(ei)) continue;
-        const rr = p.r + e.r;
-        const dx = p.x - e.x;
-        const dy = p.y - e.y;
-        if (dx * dx + dy * dy <= rr * rr) {
-          p.hitIds.add(ei);
-          damageEnemy(e, p.damage, p.color, p.crit);
-          if (player.lifesteal > 0 && e.dead) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
-          if (p.pierce > 0) p.pierce -= 1;
-          else remove = true;
-          break;
-        }
-      }
-      if (remove) state.projectiles.splice(pi, 1);
-    }
-
     state.enemies = state.enemies.filter(e => !e.dead);
-    state.enemyProjectiles = state.enemyProjectiles.filter(p => p.life > 0);
 
     for (let i = state.gems.length - 1; i >= 0; i--) {
       const g = state.gems[i];
