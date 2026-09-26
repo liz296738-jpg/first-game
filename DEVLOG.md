@@ -187,3 +187,40 @@
 - Build a dedicated enemy-behavior simulation layer only when it provides real maintenance value.
 - Move into Stage 3 content: weapon behavior abstractions and anomaly/cursed upgrades.
 - Playtest the first three Resonances and tune thresholds/effects before adding more.
+
+
+## 2026-09-26 — Alpha 0.8 dual-weapon & anomaly pass
+
+- Added a polished pre-run Seed Weapon selector with local persistence.
+- Promoted **Halo Array / 环冕阵列** from design-only to a playable prototype.
+- The two current starting weapons now have genuinely different primary loops:
+  - Astral Needle auto-locks and fires precision projectiles.
+  - Halo Array has no normal primary shot and deals damage through three rotating blades, demanding closer positioning.
+- Upgrade pools are weapon-aware:
+  - projectile-only upgrades no longer appear for Halo Array;
+  - capped upgrades leave the pool automatically;
+  - anomaly and Resonance compatibility use the same weapon-tag concept.
+- Added the first Cursed / Anomaly layer with fixed prototype cadence at levels 4/8/12/...:
+  - Glass Engine;
+  - Redline Covenant;
+  - Fracture Barrage;
+  - Broken Crown;
+  - Collapsed Halo.
+- Anomaly cards have a separate visual language and always display both upside and irreversible cost.
+- Added the Halo-specific **Event Horizon Choir / 视界合唱** Resonance:
+  - Void 3 + Lunar 2;
+  - orbit-tagged weapons only;
+  - periodically pulls nearby enemies inward and performs a synchronized cut.
+- Projectile-specific Resonances are now gated away from incompatible orbit builds.
+- Added a build summary to the game-over screen showing weapon, active Resonances and accepted Anomalies.
+- Added `ANOMALIES.md` and updated Resonance documentation.
+- Stage 3 data-driven build checklist is now complete.
+- Validation:
+  - all changed JavaScript modules parse;
+  - all 33 current DOM bindings resolve;
+  - Alpha 0.8 entry UI is present.
+
+### Next
+- Playtest Astral Needle vs Halo Array for risk/reward and upgrade-pool quality.
+- Begin Stage 4 vertical slice work: Glass Expanse environmental objective and anomaly event framework.
+- Design The Observatory boss as an authored encounter rather than scaling the current placeholder boss.
