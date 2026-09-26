@@ -6,6 +6,8 @@ import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src
 import { getUIElements } from './src/ui/elements.js';
 import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
+import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
+import { applyUpgradeEffects } from './src/systems/upgrades.js';
 
 (() => {
   'use strict';
@@ -440,38 +442,9 @@ import { drawBackground as renderBackground } from './src/render/background.js';
     }
   }
 
-  function getUpgradePool() {
-    const pool = [
-      { id: 'damage', icon: 'DMG', rarity: 'common', name: '过载弹头', desc: '伤害提高 22%。', apply: () => { player.damage *= 1.22; } },
-      { id: 'rate', icon: 'RPM', rarity: 'common', name: '超频扳机', desc: '射速提高 18%。', apply: () => { player.fireRate *= 1.18; } },
-      { id: 'speed', icon: 'SPD', rarity: 'common', name: '相位步伐', desc: '移动速度提高 12%。', apply: () => { player.speed *= 1.12; } },
-      { id: 'hp', icon: 'HP', rarity: 'common', name: '生物装甲', desc: '最大生命 +24，并立即回复 24。', apply: () => { player.maxHp += 24; player.hp = Math.min(player.maxHp, player.hp + 24); } },
-      { id: 'bullet', icon: 'VEL', rarity: 'common', name: '磁轨加速', desc: '弹速提高 20%，伤害再提高 5%。', apply: () => { player.bulletSpeed *= 1.20; player.damage *= 1.05; } },
-      { id: 'multi', icon: '+1', rarity: 'uncommon', name: '分裂火控', desc: '额外发射 1 枚投射物。', apply: () => { player.projectileCount = Math.min(7, player.projectileCount + 1); } },
-      { id: 'pierce', icon: 'PEN', rarity: 'common', name: '穿甲协议', desc: '子弹额外穿透 1 个敌人。', apply: () => { player.pierce += 1; } },
-      { id: 'crit', icon: 'CRT', rarity: 'common', name: '弱点标记', desc: '暴击率 +10%。', apply: () => { player.crit = Math.min(.65, player.crit + .10); } },
-      { id: 'magnet', icon: 'MAG', rarity: 'common', name: '引力核心', desc: '经验吸附范围 +55。', apply: () => { player.magnet += 55; } },
-      { id: 'regen', icon: 'REC', rarity: 'uncommon', name: '自修复纳米群', desc: '每秒回复 0.8 生命。', apply: () => { player.regen += .8; } },
-      { id: 'lifesteal', icon: 'VMP', rarity: 'rare', name: '嗜能回流', desc: '击杀时恢复少量生命。', apply: () => { player.lifesteal += 0.6; } },
-    ];
-
-    if (player.orbitCount === 0) pool.push({ id: 'orbit-unlock', icon: 'ORB', rarity: 'rare', name: '轨道灵刃', desc: '获得 2 枚环绕灵刃，持续切割近身目标。', apply: () => { player.orbitCount = 2; player.orbitDamage = 22; } });
-    else pool.push({ id: 'orbit-boost', icon: 'ORB', rarity: 'uncommon', name: '灵刃共振', desc: '增加 1 枚灵刃，并提高灵刃伤害。', apply: () => { player.orbitCount = Math.min(6, player.orbitCount + 1); player.orbitDamage *= 1.24; player.orbitRadius += 5; } });
-
-    if (player.novaLevel === 0) pool.push({ id: 'nova-unlock', icon: 'NOVA', rarity: 'rare', name: '脉冲新星', desc: '周期性释放环形冲击波。', apply: () => { player.novaLevel = 1; player.novaTimer = 4; } });
-    else pool.push({ id: 'nova-boost', icon: 'NOVA', rarity: 'uncommon', name: '新星扩幅', desc: '脉冲新星伤害和范围提高，并缩短冷却。', apply: () => { player.novaLevel = Math.min(5, player.novaLevel + 1); player.novaTimer = Math.max(0, player.novaTimer - 1.3); } });
-
-    if (player.droneLevel === 0) pool.push({ id: 'drone-unlock', icon: 'DRN', rarity: 'rare', name: '拂晓无人机', desc: '获得 1 台无人机辅助射击。', apply: () => { player.droneLevel = 1; } });
-    else pool.push({ id: 'drone-boost', icon: 'DRN', rarity: 'uncommon', name: '无人机列阵', desc: '提高无人机数量与火力。', apply: () => { player.droneLevel = Math.min(3, player.droneLevel + 1); } });
-
-    if (player.shield < 3) pool.push({ id: 'shield', icon: 'AEG', rarity: 'rare', name: '虚空护幕', desc: '获得 1 层护盾，可抵消一次受击。', apply: () => { player.shield += 1; } });
-
-    return pool;
-  }
-
   function pickUpgrades() {
     const rarityWeight = { common: 1, uncommon: 1.15, rare: 1.25 };
-    const pool = getUpgradePool().map(up => ({ ...up, score: Math.random() * rarityWeight[up.rarity] }));
+    const pool = buildUpgradePool(player).map(up => ({ ...up, score: Math.random() * rarityWeight[up.rarity] }));
     pool.sort((a, b) => b.score - a.score);
     return pool.slice(0, 3);
   }
@@ -484,9 +457,10 @@ import { drawBackground as renderBackground } from './src/render/background.js';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'upgrade-card';
-      btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><h3>${up.name}</h3><p>${up.desc}</p><em>${up.rarity}</em><small>选择强化 →</small>`;
+      const affinity = AFFINITIES[up.affinity];
+      btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><span class="upgrade-affinity affinity-${up.affinity}">${affinity.label}<b>${affinity.code}</b></span><h3>${up.name}</h3><p>${up.desc}</p><em>${up.rarity}</em><small>选择强化 →</small>`;
       btn.addEventListener('click', () => {
-        up.apply();
+        applyUpgradeEffects(player, up);
         ui.levelUpScreen.classList.add('hidden');
         state.mode = 'playing';
         lastFrame = performance.now();
