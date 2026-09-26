@@ -511,3 +511,46 @@ export function drawBanners(ctx, state, width) {
   ctx.fillText('STAGE SHIFT', width / 2, 58 + t * 4);
   ctx.restore();
 }
+
+
+export function drawPlayerDeath(ctx, state, player, colors) {
+  const duration = Math.max(0.001, state.deathDuration || 1);
+  const progress = 1 - Math.max(0, state.deathTimer) / duration;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (const fragment of state.deathFragments || []) {
+    const life = Math.max(0, fragment.life / Math.max(0.001, fragment.max));
+    ctx.save();
+    ctx.globalAlpha = life * (0.9 - progress * 0.28);
+    ctx.translate(fragment.x, fragment.y);
+    ctx.rotate(fragment.rotation);
+    ctx.shadowColor = fragment.warm ? '#ffd99a' : colors.accent2;
+    ctx.shadowBlur = 12 + fragment.size;
+    ctx.fillStyle = fragment.warm ? '#fff0c2' : '#dffbff';
+    ctx.beginPath();
+    ctx.moveTo(fragment.size, 0);
+    ctx.lineTo(-fragment.size * 0.58, fragment.size * 0.5);
+    ctx.lineTo(-fragment.size * 0.34, -fragment.size * 0.72);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const coreAlpha = Math.max(0, 1 - progress * 1.32);
+  if (coreAlpha > 0) {
+    ctx.globalAlpha = coreAlpha;
+    const radius = 7 + progress * 34;
+    const core = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, radius);
+    core.addColorStop(0, 'rgba(255,255,255,.95)');
+    core.addColorStop(0.28, 'rgba(176,241,255,.72)');
+    core.addColorStop(1, 'rgba(110,100,255,0)');
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
