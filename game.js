@@ -39,7 +39,7 @@
   const W = canvas.width;
   const H = canvas.height;
   const BUDGET = Object.freeze({
-    enemies: 180, spawnSignals: 48, projectiles: 620, enemyProjectiles: 340, particles: 680, rings: 96, texts: 120, afterimages: 24,
+    enemies: 180, spawnSignals: 48, projectiles: 620, enemyProjectiles: 340, particles: 680, rings: 96, texts: 120, afterimages: 24, hazards: 24,
   });
   const FEEL = Object.freeze({
     shakeMax: 12.5,
@@ -100,6 +100,8 @@
     directorEncounter: 'CALM',
     encounterCount: 0,
     lastEncounterId: '',
+    hazardTimer: 0,
+    hazardTutorialShown: false,
     nextBossAt: 55,
     shake: 0,
     flash: 0,
@@ -117,6 +119,7 @@
     banners: [],
     spawnSignals: [],
     afterimages: [],
+    hazards: [],
     lastStageIndex: 0,
   };
 
@@ -269,8 +272,8 @@
   function resetState() {
     Object.assign(state, {
       mode: 'playing', time: 0, wave: 1, kills: 0, cores: 0,
-      spawnTimer: .75, eliteTimer: 24, directorTimer: 5.5, directorBudget: 0, directorEncounter: 'CALM', encounterCount: 0, lastEncounterId: '', nextBossAt: 55, shake: 0, flash: 0,
-      enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [], spawnSignals: [], afterimages: [],
+      spawnTimer: .75, eliteTimer: 24, directorTimer: 5.5, directorBudget: 0, directorEncounter: 'CALM', encounterCount: 0, lastEncounterId: '', hazardTimer: 34, hazardTutorialShown: false, nextBossAt: 55, shake: 0, flash: 0,
+      enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [], spawnSignals: [], afterimages: [], hazards: [],
       lastStageIndex: 0,
     });
     resetPlayer();
@@ -765,6 +768,62 @@
     return slots;
   }
 
+  function spawnRiftHazard(x, y, radius = 52, warmup = 1.08, duration = 2.35, damage = 15) {
+    if (state.hazards.length >= BUDGET.hazards) return false;
+    const safeRadius = clamp(radius, 34, 82);
+    state.hazards.push({
+      x: clamp(x, safeRadius + 18, W - safeRadius - 18),
+      y: clamp(y, safeRadius + 18, H - safeRadius - 18),
+      r: safeRadius,
+      warmup,
+      maxWarmup: warmup,
+      duration,
+      maxDuration: duration,
+      damage,
+      hitTimer: 0,
+      phase: rand(0, Math.PI * 2),
+    });
+    if (!state.hazardTutorialShown) {
+      state.hazardTutorialShown = true;
+      showToast('空间裂隙：预警结束前离开区域', 1450);
+    }
+    return true;
+  }
+
+  function scheduleAmbientHazard() {
+    const angle = rand(0, Math.PI * 2);
+    const distance = rand(70, 210);
+    const x = player.x + Math.cos(angle) * distance;
+    const y = player.y + Math.sin(angle) * distance;
+    const scale = clamp(1 + state.time / 420, 1, 1.28);
+    spawnRiftHazard(x, y, 46 * scale, Math.max(.82, 1.12 - state.time / 700), 2.15, 13 + state.time / 90);
+  }
+
+  function updateHazards(dt) {
+    for (let i = state.hazards.length - 1; i >= 0; i--) {
+      const h = state.hazards[i];
+      if (h.warmup > 0) {
+        h.warmup -= dt;
+        continue;
+      }
+
+      h.duration -= dt;
+      h.hitTimer = Math.max(0, h.hitTimer - dt);
+      const dx = player.x - h.x;
+      const dy = player.y - h.y;
+      const rr = h.r + player.r * .3;
+      if (dx * dx + dy * dy <= rr * rr && h.hitTimer <= 0) {
+        const hit = takePlayerHit(h.damage);
+        if (hit) {
+          h.hitTimer = .78;
+          addRing(player.x, player.y, 30, '#ff789b', 2.2, .2);
+        }
+      }
+      if (h.duration <= 0) state.hazards.splice(i, 1);
+      if (state.mode === 'gameover') return;
+    }
+  }
+
   function takePlayerHit(amount) {
     if (player.invuln > 0) return false;
     if (player.shield > 0) {
@@ -836,6 +895,7 @@
     if (state.rings.length > BUDGET.rings) state.rings.splice(0, state.rings.length - BUDGET.rings);
     if (state.texts.length > BUDGET.texts) state.texts.splice(0, state.texts.length - BUDGET.texts);
     if (state.afterimages.length > BUDGET.afterimages) state.afterimages.splice(0, state.afterimages.length - BUDGET.afterimages);
+    if (state.hazards.length > BUDGET.hazards) state.hazards.splice(0, state.hazards.length - BUDGET.hazards);
   }
 
   function update(dt) {
@@ -925,6 +985,19 @@
       state.nextBossAt += 58;
       state.directorTimer = Math.max(state.directorTimer, 4.5);
     }
+
+    if (state.time > 34) {
+      state.hazardTimer -= dt;
+      if (state.hazardTimer <= 0) {
+        const bossActive = state.enemies.some(e => e.boss) || state.spawnSignals.some(signal => signal.boss);
+        const hazardCount = !bossActive && state.time > 110 && chance(.3) ? 2 : 1;
+        for (let i = 0; i < hazardCount; i++) scheduleAmbientHazard();
+        state.hazardTimer = rand(bossActive ? 10.5 : 8.2, bossActive ? 14.5 : 12.2);
+      }
+    }
+
+    updateHazards(dt);
+    if (state.mode === 'gameover') return;
 
     player.fireTimer -= dt;
     const target = nearestEnemy();
@@ -1322,6 +1395,50 @@
     ctx.restore();
   }
 
+  function drawHazards() {
+    for (const h of state.hazards) {
+      const warming = h.warmup > 0;
+      const progress = warming ? 1 - h.warmup / h.maxWarmup : 1 - h.duration / h.maxDuration;
+      const pulse = .82 + Math.sin(state.time * 7 + h.phase) * .18;
+      ctx.save();
+      ctx.translate(h.x, h.y);
+
+      if (warming) {
+        ctx.globalAlpha = .28 + progress * .38;
+        ctx.strokeStyle = '#ff789b';
+        ctx.shadowColor = '#ff789b';
+        ctx.shadowBlur = 13;
+        ctx.lineWidth = 1.5 + progress;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath(); ctx.arc(0, 0, h.r * (.9 + progress * .1), 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha *= .55;
+        ctx.beginPath(); ctx.arc(0, 0, h.r * .45, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+      } else {
+        const fade = Math.min(1, h.duration * 2.2);
+        const grad = ctx.createRadialGradient(0, 0, h.r * .12, 0, 0, h.r);
+        grad.addColorStop(0, 'rgba(255,105,150,.08)');
+        grad.addColorStop(.68, 'rgba(255,82,130,.11)');
+        grad.addColorStop(1, 'rgba(255,65,105,0)');
+        ctx.globalAlpha = fade * pulse;
+        ctx.fillStyle = grad;
+        ctx.fillRect(-h.r, -h.r, h.r * 2, h.r * 2);
+        ctx.strokeStyle = 'rgba(255,121,155,.78)';
+        ctx.shadowColor = '#ff5f91';
+        ctx.shadowBlur = 15;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, h.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.rotate(state.time * .35 + h.phase);
+        ctx.globalAlpha *= .48;
+        for (let i = 0; i < 3; i++) {
+          ctx.rotate(Math.PI * 2 / 3);
+          ctx.beginPath(); ctx.arc(h.r * .18, 0, h.r * .62, -.55, .72); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
   function drawSpawnSignals() {
     for (const signal of state.spawnSignals) {
       if (signal.delay > 0) continue;
@@ -1583,6 +1700,7 @@
     ctx.translate(sx + driftX, sy + driftY);
 
     drawBackground();
+    drawHazards();
     drawSpawnSignals();
 
     for (const r of state.rings) {
@@ -1682,6 +1800,7 @@
         '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
         '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
+        '\nHAZARD ' + state.hazards.length + '/' + BUDGET.hazards +
         '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies +
         '\nDIRECTOR ' + state.directorEncounter + ' [' + state.directorBudget.toFixed(1) + ']';
     }
