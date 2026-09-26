@@ -4,6 +4,7 @@ export const RESONANCES = Object.freeze([
     name: '日冕复写',
     code: 'CORONA REPEATER',
     requirements: { solar: 3, machine: 2 },
+    weaponTags: ['projectile'],
     description: '每第 5 次主武器齐射触发一次日冕复写，追加一组偏转弹幕。',
   },
   {
@@ -18,6 +19,7 @@ export const RESONANCES = Object.freeze([
     name: '黑星破裂',
     code: 'BLACKSTAR RUPTURE',
     requirements: { void: 3, solar: 2 },
+    weaponTags: ['projectile'],
     description: '暴击完成击杀时引爆目标，将部分主武器伤害扩散到附近敌人。',
   },
 ]);
