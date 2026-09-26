@@ -28,14 +28,22 @@ The project deliberately uses native ES Modules and static assets so Render can 
     │   ├── biomes.js
     │   ├── enemies.js
     │   ├── encounters.js
-    │   └── upgrades.js
+    │   ├── resonances.js
+    │   ├── upgrades.js
+    │   └── weapons.js
     ├── render/
     │   ├── background.js
-    │   └── entities.js
+    │   ├── entities.js
+    │   └── projectiles.js
     ├── systems/
+    │   ├── death.js
     │   ├── director.js
     │   ├── hazards.js
-    │   └── upgrades.js
+    │   ├── movement.js
+    │   ├── projectiles.js
+    │   ├── resonances.js
+    │   ├── upgrades.js
+    │   └── weapons.js
     └── ui/
         └── elements.js
 ```
@@ -75,9 +83,9 @@ Temporary orchestration layer. It still owns too much simulation and rendering l
 
 ## Next extraction targets
 
-1. Combat/projectile simulation.
-2. Player input and movement.
-3. Upgrade/Constellation selection flow.
+1. Enemy behavior/combat simulation.
+2. Pickup/experience simulation.
+3. Upgrade/Constellation selection UI flow.
 4. Local save schema.
 
 ## Validation baseline
