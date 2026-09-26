@@ -82,3 +82,20 @@
 - Add the first readable ground-hazard framework.
 - Begin splitting the monolithic runtime into maintainable data / simulation / rendering sections.
 - Add VFX quality settings and a reduced-effects path before effect density increases further.
+
+
+## 2026-09-26 — Alpha 0.4 reusable ground-hazard framework
+
+- Added the first reusable ground danger primitive: a telegraphed Rift Zone.
+- Rift Zones have a clear wind-up, active danger phase, bounded repeated damage and dash/invulnerability interaction.
+- Added a restrained ambient scheduler after the opening section of a run so movement pressure increases without simply increasing enemy HP.
+- Hazard frequency backs off during boss pressure to protect encounter readability.
+- Added a one-time onboarding toast for the first Rift Zone.
+- Added a hard hazard-count budget and surfaced hazard usage in F3 diagnostics.
+- Re-validated the committed GitHub `game.js`: JavaScript parser check passes.
+
+### Next
+- Modularize the single-file runtime before more content is added.
+- Add reduced/standard/high VFX quality paths.
+- Add boss/biome-driven background response and player death dissolve.
+- Then move into the data-driven upgrade/Constellation foundation.
