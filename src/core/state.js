@@ -1,3 +1,5 @@
+import { SECTOR_ONE_TUNING } from '../config/sector-one-balance.js';
+
 export function createRunState(mode = 'menu') {
   const playing = mode === 'playing';
   return {
@@ -21,7 +23,7 @@ export function createRunState(mode = 'menu') {
     sectorEventStarted: false,
     sectorEventComplete: false,
     worldEvent: null,
-    nextBossAt: 65,
+    nextBossAt: SECTOR_ONE_TUNING.boss.earliestTime,
     shake: 0,
     flash: 0,
     enemies: [],
