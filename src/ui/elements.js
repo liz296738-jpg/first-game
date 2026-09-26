@@ -25,6 +25,7 @@ export function getUIElements() {
     toast: document.getElementById('toast'),
     stageText: document.getElementById('stageText'),
     buildTags: document.getElementById('buildTags'),
+    constellationStrip: document.getElementById('constellationStrip'),
     dashFill: document.getElementById('dashFill'),
     dashText: document.getElementById('dashText'),
     dashBtn: document.getElementById('dashBtn'),
