@@ -69,6 +69,7 @@ export function createPlayerState(width, height) {
     droneFireTimer: 0,
     shield: 0,
     lifesteal: 0,
+    affinities: { solar: 0, lunar: 0, void: 0, aether: 0, machine: 0 },
     angle: -Math.PI / 2,
     thrust: 0,
     vx: 0,
