@@ -7,7 +7,7 @@
 
 - [x] 导入当前可玩原型
 - [x] 建立目录结构
-- [ ] 拆分 simulation / rendering / data / ui
+- [x] 拆分 simulation / rendering / data / ui
 - [x] 增加基础静态检查
 - [x] Render 部署配置
 - [x] DEVLOG
@@ -32,7 +32,7 @@
 - [x] 推进尾焰
 - [x] 受击反馈
 - [x] 护盾 / 无敌反馈
-- [ ] 死亡溶解
+- [x] 死亡溶解
 
 ### 战斗特效
 - [x] 投射物拖尾
@@ -58,11 +58,11 @@
 **退出条件**：只有少量敌人和武器时，连续玩 5 分钟仍然有乐趣。
 
 ## Stage 3 — 数据驱动构筑
-- [ ] 武器数据表
+- [x] 武器数据表
 - [x] 升级数据表
 - [x] tag 系统
 - [x] rarity
-- [ ] 前置条件
+- [x] 前置条件
 - [x] synergy
 - [x] keystone
 - [ ] anomaly / cursed 强化
@@ -122,7 +122,7 @@
 
 ## 当前开发优先级
 
-1. 继续 Stage 0 模块化：下一步抽离 Combat/Projectile simulation 与输入/移动。
-2. Stage 1 只剩死亡溶解；同时持续做“壁纸截图”视觉校准。
+1. Stage 0 工程基线已收口；后续只按真实维护需求继续拆模块。
+2. Stage 1 清单完成，下一步进入实际截图/试玩校准，而不是继续盲加特效。
 3. 试玩并校准 Stage 2 的相位冲刺、预警、击退、危险区和遭遇预算。
-4. Stage 3 继续做升级前置条件、武器数据表与更多经试玩验证的 Resonance。
+4. Stage 3 继续：完善武器行为层、anomaly/cursed 强化，并在试玩后扩展 Resonance。
