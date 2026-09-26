@@ -116,6 +116,40 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   ctx.restore();
 }
 
+function drawBossPressure(ctx, W, H, state, colors, quality) {
+  const bossActive = state.enemies.some(enemy => enemy.boss)
+    || state.spawnSignals.some(signal => signal.boss);
+  if (!bossActive) return;
+
+  const strength = quality?.backgroundScale ?? 1;
+  const pulse = 0.72 + Math.sin(state.time * 1.7) * 0.08;
+
+  ctx.save();
+  const veil = ctx.createRadialGradient(W * 0.5, H * 0.48, H * 0.12, W * 0.5, H * 0.48, H * 0.82);
+  veil.addColorStop(0, 'rgba(0,0,0,0)');
+  veil.addColorStop(0.66, `rgba(18,7,20,${0.08 * strength})`);
+  veil.addColorStop(1, `rgba(4,2,8,${0.28 * strength})`);
+  ctx.fillStyle = veil;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.translate(W * 0.77, H * 0.19);
+  ctx.rotate(state.time * 0.018);
+  ctx.globalAlpha = 0.16 * strength * pulse;
+  ctx.strokeStyle = '#ffd995';
+  ctx.shadowColor = '#ffb36d';
+  ctx.shadowBlur = 22 * strength;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 190, 62, -0.28, 0.22, Math.PI * 1.76);
+  ctx.stroke();
+  ctx.rotate(-0.36);
+  ctx.globalAlpha *= 0.6;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 148, 44, 0, Math.PI * 1.02, Math.PI * 1.9);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawProps(ctx, W, H, state, player, colors, quality) {
   const px = player.x / W - .5;
   ctx.save();
@@ -161,6 +195,7 @@ function drawProps(ctx, W, H, state, player, colors, quality) {
 export function drawBackground(ctx, W, H, state, player, colors, quality) {
   drawBackdropLayer(ctx, W, H, state, player, colors, quality);
   drawProps(ctx, W, H, state, player, colors, quality);
+  drawBossPressure(ctx, W, H, state, colors, quality);
 
   const focus = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, 260);
   focus.addColorStop(0, alphaColor(colors.hazeA, .08));
