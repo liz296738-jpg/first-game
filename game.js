@@ -250,9 +250,11 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
     if (!kind) {
       const roll = Math.random();
       kind = 'drone';
-      if (state.time > 80 && roll < .14) kind = 'brute';
-      else if (state.time > 52 && roll < .28) kind = 'caster';
-      else if (state.time > 26 && roll < .44) kind = 'swift';
+      if (state.time > 70 && roll < .10) kind = 'seeder';
+      else if (state.time > 56 && roll < .22) kind = 'brute';
+      else if (state.time > 45 && roll < .34) kind = 'caster';
+      else if (state.time > 32 && roll < .48) kind = 'moth';
+      else if (state.time > 24 && roll < .62) kind = 'swift';
     }
     if (boss && !kind) kind = 'boss';
 
@@ -280,6 +282,11 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       attackChargeMax: 0,
       attackAngle: 0,
       pendingAttack: null,
+      dashTimer: rand(2.1, 3.6),
+      dashBoost: 0,
+      dashDirX: 0,
+      dashDirY: 0,
+      seederTimer: rand(3.5, 5.2),
     };
     if (kind === 'observatory') initializeObservatory(enemy);
     state.enemies.push(enemy);
@@ -820,7 +827,51 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       const d = Math.hypot(dx, dy) || 1;
       const baseDirX = dx / d;
       const baseDirY = dy / d;
-      if (e.type === 'caster') {
+      if (e.type === 'moth') {
+        if (e.dashBoost > 0) {
+          e.dashBoost -= dt;
+          e.x += e.dashDirX * e.speed * 3.35 * dt;
+          e.y += e.dashDirY * e.speed * 3.35 * dt;
+        } else {
+          const desired = 205;
+          const radial = d < desired ? -0.4 : 0.24;
+          const tangent = Math.sin(state.time * 1.6 + e.phase) > 0 ? 0.78 : -0.78;
+          e.x += (baseDirX * radial - baseDirY * tangent) * e.speed * dt;
+          e.y += (baseDirY * radial + baseDirX * tangent) * e.speed * dt;
+          e.dashTimer -= dt;
+          if (e.dashTimer <= 0 && e.attackCharge <= 0 && d < 430) {
+            e.attackCharge = e.elite ? 0.48 : 0.62;
+            e.attackChargeMax = e.attackCharge;
+            e.attackAngle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.pendingAttack = 'moth';
+            e.dashTimer = e.elite ? 2.2 : 3.1;
+          }
+        }
+      } else if (e.type === 'seeder') {
+        const desired = 255;
+        const dir = d < desired ? -0.48 : 0.38;
+        const tangent = Math.sin(state.time * 1.2 + e.phase) * 0.2;
+        e.x += (baseDirX * dir - baseDirY * tangent) * e.speed * dt;
+        e.y += (baseDirY * dir + baseDirX * tangent) * e.speed * dt;
+        e.seederTimer -= dt;
+        if (e.seederTimer <= 0 && d < 520) {
+          spawnRiftHazard(
+            state,
+            W,
+            H,
+            e.x - baseDirX * 28,
+            e.y - baseDirY * 28,
+            {
+              radius: e.elite ? 58 : 46,
+              warmup: e.elite ? 0.78 : 1.05,
+              duration: e.elite ? 3.0 : 2.5,
+              damage: e.damage * 0.62,
+            },
+          );
+          addRing(e.x, e.y, e.r + 14, '#9f8cff', 2, 0.26);
+          e.seederTimer = e.elite ? 3.7 : 5.4;
+        }
+      } else if (e.type === 'caster') {
         const desired = 220;
         const dir = d < desired ? -1 : 1;
         e.x += (baseDirX * dir - baseDirY * Math.sin(state.time * 2 + e.phase) * .1) * e.speed * dt;
@@ -867,16 +918,23 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       if (e.attackCharge > 0) {
         e.attackCharge -= dt;
         if (e.attackCharge <= 0 && e.pendingAttack) {
-          const savedX = player.x, savedY = player.y;
-          player.x = e.x + Math.cos(e.attackAngle) * 300;
-          player.y = e.y + Math.sin(e.attackAngle) * 300;
-          if (e.pendingAttack === 'boss') {
-            enemyShoot(e, 5, 250);
-            addRing(e.x, e.y, 56, '#ffd37c', 4, .32);
+          if (e.pendingAttack === 'moth') {
+            e.dashBoost = e.elite ? 0.46 : 0.38;
+            e.dashDirX = Math.cos(e.attackAngle);
+            e.dashDirY = Math.sin(e.attackAngle);
+            addRing(e.x, e.y, e.r + 18, '#f3b6ff', 2.2, 0.24);
           } else {
-            enemyShoot(e, e.elite ? 2 : 1, e.elite ? 260 : 220);
+            const savedX = player.x, savedY = player.y;
+            player.x = e.x + Math.cos(e.attackAngle) * 300;
+            player.y = e.y + Math.sin(e.attackAngle) * 300;
+            if (e.pendingAttack === 'boss') {
+              enemyShoot(e, 5, 250);
+              addRing(e.x, e.y, 56, '#ffd37c', 4, .32);
+            } else {
+              enemyShoot(e, e.elite ? 2 : 1, e.elite ? 260 : 220);
+            }
+            player.x = savedX; player.y = savedY;
           }
-          player.x = savedX; player.y = savedY;
           e.pendingAttack = null;
         }
       }
