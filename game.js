@@ -13,6 +13,7 @@ import { runEncounterDirector as directEncounter } from './src/systems/director.
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
 import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/projectiles.js';
 import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
+import { requestDash as tryDash, updatePlayerMovement } from './src/systems/movement.js';
 
 (() => {
   'use strict';
@@ -413,48 +414,6 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
     }
   }
 
-  function playerInput() {
-    let dx = 0, dy = 0;
-    if (keys.has('KeyW') || keys.has('ArrowUp')) dy -= 1;
-    if (keys.has('KeyS') || keys.has('ArrowDown')) dy += 1;
-    if (keys.has('KeyA') || keys.has('ArrowLeft')) dx -= 1;
-    if (keys.has('KeyD') || keys.has('ArrowRight')) dx += 1;
-
-    if (touch.active) {
-      const tx = touch.x - touch.sx;
-      const ty = touch.y - touch.sy;
-      const mag = Math.hypot(tx, ty);
-      if (mag > 6) { dx += tx / Math.max(42, mag); dy += ty / Math.max(42, mag); }
-    }
-
-    const mag = Math.hypot(dx, dy);
-    if (mag > 0) { dx /= mag; dy /= mag; }
-    return { dx, dy };
-  }
-
-  function requestDash() {
-    if (state.mode !== 'playing' || player.dashCooldown > 0 || player.dashTimer > 0) return false;
-    const input = playerInput();
-    const moving = Math.hypot(input.dx, input.dy) > .05;
-    const dx = moving ? input.dx : Math.cos(player.angle);
-    const dy = moving ? input.dy : Math.sin(player.angle);
-    player.dashDirX = dx;
-    player.dashDirY = dy;
-    player.dashTimer = player.dashDuration;
-    player.dashCooldown = player.dashCooldownMax;
-    player.dashAfterimageTimer = 0;
-    player.invuln = Math.max(player.invuln, player.dashDuration + .05);
-    player.angle = Math.atan2(dy, dx);
-    if (hasResonance(player, 'moonstep-mantle') && player.phaseGuardCooldown <= 0) {
-      player.phaseGuardTimer = 1.35;
-      player.phaseGuardCooldown = 7.5;
-      addRing(player.x, player.y, 44, '#c7dcff', 2.4, 0.32);
-    }
-    addRing(player.x, player.y, 30, biome().accent2, 2.4, .25);
-    addShake(3.2);
-    return true;
-  }
-
   function playerNovaDamage() {
     return player.damage * (.95 + player.novaLevel * .42);
   }
@@ -614,51 +573,15 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
 
     if (player.regen > 0) player.hp = Math.min(player.maxHp, player.hp + player.regen * dt);
 
-    const input = playerInput();
-    const moving = Math.hypot(input.dx, input.dy) > .05;
-    player.dashCooldown = Math.max(0, player.dashCooldown - dt);
-
-    if (player.dashTimer > 0) {
-      player.dashTimer = Math.max(0, player.dashTimer - dt);
-      player.dashAfterimageTimer -= dt;
-      player.vx = player.dashDirX * player.dashSpeed;
-      player.vy = player.dashDirY * player.dashSpeed;
-      player.thrust += (1.25 - player.thrust) * Math.min(1, dt * 20);
-      if (player.dashAfterimageTimer <= 0) {
-        state.afterimages.push({ x: player.x, y: player.y, angle: player.angle, life: .22, max: .22 });
-        player.dashAfterimageTimer = .035;
-      }
-    } else {
-      const targetVX = input.dx * player.speed;
-      const targetVY = input.dy * player.speed;
-      const responsiveness = moving ? 12.5 : 18;
-      const blend = 1 - Math.exp(-responsiveness * dt);
-      player.vx = lerp(player.vx, targetVX, blend);
-      player.vy = lerp(player.vy, targetVY, blend);
-      const velocityMag = Math.hypot(player.vx, player.vy);
-      if (velocityMag > 8) {
-        const desired = Math.atan2(player.vy, player.vx);
-        const delta = ((desired - player.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-        player.angle += delta * Math.min(1, dt * 9.5);
-      }
-      player.thrust += ((moving ? 1 : 0) - player.thrust) * Math.min(1, dt * 9);
-    }
-
-    player.x = clamp(player.x + player.vx * dt, player.r + 8, W - player.r - 8);
-    player.y = clamp(player.y + player.vy * dt, player.r + 8, H - player.r - 8);
-
-    if ((moving || player.dashTimer > 0) && chance(dt * (player.dashTimer > 0 ? 70 : 32))) {
-      const back = player.angle + Math.PI;
-      const side = rand(-7, 7);
-      state.particles.push({
-        x: player.x + Math.cos(back) * 18 + Math.cos(back + Math.PI / 2) * side,
-        y: player.y + Math.sin(back) * 18 + Math.sin(back + Math.PI / 2) * side,
-        vx: Math.cos(back) * rand(player.dashTimer > 0 ? 100 : 55, player.dashTimer > 0 ? 220 : 130) + rand(-14, 14),
-        vy: Math.sin(back) * rand(player.dashTimer > 0 ? 100 : 55, player.dashTimer > 0 ? 220 : 130) + rand(-14, 14),
-        life: rand(.22, .45), max: .45, size: rand(1.2, player.dashTimer > 0 ? 4.2 : 3.2),
-        color: chance(.33) ? '#917cff' : '#65eaff', glow: player.dashTimer > 0 ? 17 : 10,
-      });
-    }
+    updatePlayerMovement({
+      state,
+      player,
+      keys,
+      touch,
+      dt,
+      width: W,
+      height: H,
+    });
 
     // Ambient pressure keeps the field alive; major difficulty comes from authored encounter packs.
     const ambientRate = Math.max(.56, 1.28 - state.time / 520);
@@ -1043,7 +966,7 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
   window.addEventListener('keydown', (ev) => {
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code)) ev.preventDefault();
     keys.add(ev.code);
-    if ((ev.code === 'Space' || ev.code === 'ShiftLeft' || ev.code === 'ShiftRight') && !ev.repeat) requestDash();
+    if ((ev.code === 'Space' || ev.code === 'ShiftLeft' || ev.code === 'ShiftRight') && !ev.repeat) tryDash({ state, player, keys, touch, accent: biome().accent2, addRing, addShake, hasResonance });
     if (ev.code === 'F3' && !ev.repeat) {
       debugVisible = !debugVisible;
       if (ui.debugPanel) ui.debugPanel.classList.toggle('hidden', !debugVisible);
@@ -1067,7 +990,7 @@ import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
     else if (state.mode === 'paused') togglePause(false);
   });
   ui.resumeBtn.addEventListener('click', () => togglePause(false));
-  if (ui.dashBtn) ui.dashBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); requestDash(); });
+  if (ui.dashBtn) ui.dashBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); tryDash({ state, player, keys, touch, accent: biome().accent2, addRing, addShake, hasResonance }); });
 
   makeAtmosphere();
   refreshVfxButton();
