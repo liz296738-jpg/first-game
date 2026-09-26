@@ -161,3 +161,29 @@
 - Extract player input/movement.
 - Add player death dissolve.
 - Playtest and tune the first three Resonances before expanding the pool.
+
+
+## 2026-09-26 — Alpha 0.7 simulation split & death dissolve
+
+- Extracted player/enemy projectile simulation into `src/systems/projectiles.js`.
+- Extracted movement, directional input and Phase Dash behavior into `src/systems/movement.js`.
+- Extracted projectile rendering into `src/render/projectiles.js`.
+- Fixed duplicate lifesteal recovery on projectile kills while moving collision handling.
+- Added a cinematic player death state:
+  - combat stops immediately when lethal damage occurs;
+  - the craft dissolves into luminous fragments;
+  - core light collapses before the result overlay appears;
+  - death shock rings continue animating during the freeze-frame sequence.
+- Added `src/data/weapons.js` and `src/systems/weapons.js`.
+- The playable starter weapon is now explicitly **Astral Needle / 星针** and its base/projectile identity is sourced from weapon data.
+- Added Halo Array and Singularity Seed only as design-status weapon entries; they are not presented as playable content yet.
+- Replaced special-upgrade branching with declarative prerequisite rules evaluated by the shared upgrade system.
+- Capped upgrade cards now disappear from the pool when their meaningful maximum has been reached.
+- Stage 0 engineering baseline checklist is now complete.
+- Stage 1 visual checklist is now complete; further visual work should be driven by actual screenshot/playtest findings.
+- Validation: all changed JavaScript modules parse successfully.
+
+### Next
+- Build a dedicated enemy-behavior simulation layer only when it provides real maintenance value.
+- Move into Stage 3 content: weapon behavior abstractions and anomaly/cursed upgrades.
+- Playtest the first three Resonances and tune thresholds/effects before adding more.
