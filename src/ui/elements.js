@@ -17,6 +17,7 @@ export function getUIElements() {
     xpFill: document.getElementById('xpFill'),
     timerText: document.getElementById('timerText'),
     waveText: document.getElementById('waveText'),
+    missionText: document.getElementById('missionText'),
     killsText: document.getElementById('killsText'),
     coresText: document.getElementById('coresText'),
     resultTime: document.getElementById('resultTime'),
