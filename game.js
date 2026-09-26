@@ -4,6 +4,7 @@ import { ENEMY_CONFIGS, ENEMY_THREAT } from './src/data/enemies.js';
 import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
 import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src/core/math.js';
 import { getUIElements } from './src/ui/elements.js';
+import { createRunState, createPlayerState } from './src/core/state.js';
 
 (() => {
   'use strict';
@@ -31,86 +32,9 @@ import { getUIElements } from './src/ui/elements.js';
     y: 0,
   };
 
-  const state = {
-    mode: 'menu',
-    time: 0,
-    wave: 1,
-    kills: 0,
-    cores: 0,
-    spawnTimer: 0,
-    eliteTimer: 0,
-    directorTimer: 0,
-    directorBudget: 0,
-    directorEncounter: 'CALM',
-    encounterCount: 0,
-    lastEncounterId: '',
-    hazardTimer: 0,
-    hazardTutorialShown: false,
-    nextBossAt: 55,
-    shake: 0,
-    flash: 0,
-    enemies: [],
-    projectiles: [],
-    enemyProjectiles: [],
-    gems: [],
-    particles: [],
-    texts: [],
-    stars: [],
-    nebulae: [],
-    dust: [],
-    props: [],
-    rings: [],
-    banners: [],
-    spawnSignals: [],
-    afterimages: [],
-    hazards: [],
-    lastStageIndex: 0,
-  };
+  const state = createRunState();
 
-  const player = {
-    x: W / 2,
-    y: H / 2,
-    r: 18,
-    speed: 250,
-    hp: 100,
-    maxHp: 100,
-    level: 1,
-    xp: 0,
-    xpNeed: 24,
-    damage: 24,
-    fireRate: 2.7,
-    fireTimer: 0,
-    bulletSpeed: 700,
-    projectileCount: 1,
-    spread: 0.16,
-    pierce: 0,
-    crit: 0.08,
-    magnet: 95,
-    regen: 0,
-    invuln: 0,
-    orbitCount: 0,
-    orbitDamage: 18,
-    orbitRadius: 54,
-    orbitSpeed: 2.4,
-    novaLevel: 0,
-    novaTimer: 7,
-    droneLevel: 0,
-    droneFireTimer: 0,
-    shield: 0,
-    lifesteal: 0,
-    angle: -Math.PI / 2,
-    thrust: 0,
-    vx: 0,
-    vy: 0,
-    dashCooldown: 0,
-    dashCooldownMax: 1.15,
-    dashTimer: 0,
-    dashDuration: .18,
-    dashSpeed: 760,
-    dashDirX: 1,
-    dashDirY: 0,
-    dashAfterimageTimer: 0,
-  };
+  const player = createPlayerState(W, H);
 
   function currentBiomeIndex() {
     return Math.floor(state.time / 75) % BIOMES.length;
@@ -184,28 +108,11 @@ import { getUIElements } from './src/ui/elements.js';
   }
 
   function resetPlayer() {
-    Object.assign(player, {
-      x: W / 2, y: H / 2, r: 18, speed: 250,
-      hp: 100, maxHp: 100, level: 1, xp: 0, xpNeed: 24,
-      damage: 24, fireRate: 2.7, fireTimer: 0, bulletSpeed: 700,
-      projectileCount: 1, spread: 0.16, pierce: 0, crit: 0.08,
-      magnet: 95, regen: 0, invuln: 0,
-      orbitCount: 0, orbitDamage: 18, orbitRadius: 54, orbitSpeed: 2.4,
-      novaLevel: 0, novaTimer: 7, droneLevel: 0, droneFireTimer: 0,
-      shield: 0, lifesteal: 0,
-      angle: -Math.PI / 2, thrust: 0,
-      vx: 0, vy: 0, dashCooldown: 0, dashCooldownMax: 1.15, dashTimer: 0, dashDuration: .18, dashSpeed: 760,
-      dashDirX: 1, dashDirY: 0, dashAfterimageTimer: 0,
-    });
+    Object.assign(player, createPlayerState(W, H));
   }
 
   function resetState() {
-    Object.assign(state, {
-      mode: 'playing', time: 0, wave: 1, kills: 0, cores: 0,
-      spawnTimer: .75, eliteTimer: 24, directorTimer: 5.5, directorBudget: 0, directorEncounter: 'CALM', encounterCount: 0, lastEncounterId: '', hazardTimer: 34, hazardTutorialShown: false, nextBossAt: 55, shake: 0, flash: 0,
-      enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [], spawnSignals: [], afterimages: [], hazards: [],
-      lastStageIndex: 0,
-    });
+    Object.assign(state, createRunState('playing'));
     resetPlayer();
     makeAtmosphere();
   }
