@@ -1,4 +1,4 @@
-import { BUDGET, FEEL } from './src/config/runtime.js';
+import { BUDGET, FEEL, VFX_PROFILES, VFX_PROFILE_ORDER } from './src/config/runtime.js';
 import { BIOMES } from './src/data/biomes.js';
 import { ENEMY_CONFIGS } from './src/data/enemies.js';
 import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src/core/math.js';
@@ -27,6 +27,25 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   let toastTimer = 0;
   let fpsSmoothed = 60;
   let debugVisible = false;
+  let vfxMode = localStorage.getItem('void-descent-vfx') || 'standard';
+  if (!VFX_PROFILES[vfxMode]) vfxMode = 'standard';
+
+  function vfxProfile() {
+    return VFX_PROFILES[vfxMode];
+  }
+
+  function refreshVfxButton() {
+    if (!ui.vfxBtn) return;
+    ui.vfxBtn.textContent = `特效 · ${vfxProfile().label}`;
+  }
+
+  function cycleVfxQuality() {
+    const index = VFX_PROFILE_ORDER.indexOf(vfxMode);
+    vfxMode = VFX_PROFILE_ORDER[(index + 1) % VFX_PROFILE_ORDER.length];
+    localStorage.setItem('void-descent-vfx', vfxMode);
+    refreshVfxButton();
+    showToast(`特效质量：${vfxProfile().label}`, 850);
+  }
 
   const touch = {
     active: false,
@@ -272,7 +291,8 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   }
 
   function addShake(amount) {
-    state.shake = Math.min(FEEL.shakeMax, Math.max(state.shake, amount));
+    const scaled = amount * vfxProfile().shakeScale;
+    state.shake = Math.min(FEEL.shakeMax * vfxProfile().shakeScale, Math.max(state.shake, scaled));
   }
 
   function damageEnemy(enemy, amount, hitColor = '#dffbff', crit = false) {
@@ -503,12 +523,16 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   }
 
   function enforceBudgets() {
+    const quality = vfxProfile();
+    const particleCap = Math.max(160, Math.round(BUDGET.particles * quality.particleScale));
+    const ringCap = Math.max(24, Math.round(BUDGET.rings * quality.ringScale));
+    const afterimageCap = Math.max(6, Math.round(BUDGET.afterimages * quality.afterimageScale));
     if (state.projectiles.length > BUDGET.projectiles) state.projectiles.splice(0, state.projectiles.length - BUDGET.projectiles);
     if (state.enemyProjectiles.length > BUDGET.enemyProjectiles) state.enemyProjectiles.splice(0, state.enemyProjectiles.length - BUDGET.enemyProjectiles);
-    if (state.particles.length > BUDGET.particles) state.particles.splice(0, state.particles.length - BUDGET.particles);
-    if (state.rings.length > BUDGET.rings) state.rings.splice(0, state.rings.length - BUDGET.rings);
+    if (state.particles.length > particleCap) state.particles.splice(0, state.particles.length - particleCap);
+    if (state.rings.length > ringCap) state.rings.splice(0, state.rings.length - ringCap);
     if (state.texts.length > BUDGET.texts) state.texts.splice(0, state.texts.length - BUDGET.texts);
-    if (state.afterimages.length > BUDGET.afterimages) state.afterimages.splice(0, state.afterimages.length - BUDGET.afterimages);
+    if (state.afterimages.length > afterimageCap) state.afterimages.splice(0, state.afterimages.length - afterimageCap);
     if (state.hazards.length > BUDGET.hazards) state.hazards.splice(0, state.hazards.length - BUDGET.hazards);
   }
 
@@ -834,7 +858,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     const driftY = Math.cos(state.time * .11) * FEEL.ambientDriftY + Math.sin(state.time * .043) * .55;
     ctx.translate(sx + driftX, sy + driftY);
 
-    renderBackground(ctx, W, H, state, player, biome());
+    renderBackground(ctx, W, H, state, player, biome(), vfxProfile());
     renderHazards(ctx, state);
     renderSpawnSignals(ctx, state, W, H);
 
@@ -947,6 +971,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
         '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
         '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
+        '\nVFX ' + vfxProfile().label +
         '\nHAZARD ' + state.hazards.length + '/' + BUDGET.hazards +
         '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies +
         '\nDIRECTOR ' + state.directorEncounter + ' [' + state.directorBudget.toFixed(1) + ']';
@@ -1012,6 +1037,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
 
   ui.startBtn.addEventListener('click', startGame);
   ui.restartBtn.addEventListener('click', startGame);
+  if (ui.vfxBtn) ui.vfxBtn.addEventListener('click', cycleVfxQuality);
   ui.pauseBtn.addEventListener('click', () => {
     if (state.mode === 'playing') togglePause(true);
     else if (state.mode === 'paused') togglePause(false);
@@ -1020,6 +1046,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   if (ui.dashBtn) ui.dashBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); requestDash(); });
 
   makeAtmosphere();
+  refreshVfxButton();
   renderBest();
   updateBuildTags();
   updateConstellationUI();
