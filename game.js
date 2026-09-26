@@ -11,6 +11,7 @@ import { AFFINITIES } from './src/data/upgrades.js';
 import { STARTER_WEAPON_ID, getWeapon, getPlayableWeapons } from './src/data/weapons.js';
 import { buildUpgradePool, applyUpgradeEffects } from './src/systems/upgrades.js';
 import { injectAnomalyOffer } from './src/systems/anomalies.js';
+import { ANOMALIES } from './src/data/anomalies.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
@@ -36,7 +37,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
   let fpsSmoothed = 60;
   let debugVisible = false;
   let selectedWeaponId = localStorage.getItem('void-descent-weapon') || STARTER_WEAPON_ID;
-  if (getWeapon(selectedWeaponId).status !== 'playable') selectedWeaponId = STARTER_WEAPON_ID;
+  if (!getPlayableWeapons().some(weapon => weapon.id === selectedWeaponId)) selectedWeaponId = STARTER_WEAPON_ID;
   let vfxMode = localStorage.getItem('void-descent-vfx') || 'standard';
   if (!VFX_PROFILES[vfxMode]) vfxMode = 'standard';
 
@@ -166,6 +167,10 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
         renderWeaponChoices();
       });
     }
+
+    const selected = getWeapon(selectedWeaponId);
+    const startLabel = ui.startBtn?.querySelector('span');
+    if (startLabel) startLabel.textContent = `以「${selected.name}」进入玻璃荒原`;
   }
 
   function resetState() {
@@ -204,6 +209,20 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     ui.resultKills.textContent = state.kills;
     ui.resultLevel.textContent = player.level;
     ui.resultCores.textContent = state.cores;
+    if (ui.resultBuild) {
+      const resonanceTags = getActiveResonances(player)
+        .map(resonance => `<span class="resonance">共鸣 · ${resonance.name}</span>`);
+      const anomalyMap = new Map(ANOMALIES.map(anomaly => [anomaly.id, anomaly]));
+      const anomalyTags = player.anomalies
+        .map(id => anomalyMap.get(id))
+        .filter(Boolean)
+        .map(anomaly => `<span class="anomaly">异常 · ${anomaly.name}</span>`);
+      ui.resultBuild.innerHTML = [
+        `<span class="weapon">武器 · ${player.weaponName}</span>`,
+        ...resonanceTags,
+        ...anomalyTags,
+      ].join('');
+    }
     updateBest();
   }
 
@@ -984,6 +1003,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
         '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
         '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
+        '\nWEAPON ' + (player.weaponName || '-') +
         '\nVFX ' + vfxProfile().label +
         '\nHAZARD ' + state.hazards.length + '/' + BUDGET.hazards +
         '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies +
