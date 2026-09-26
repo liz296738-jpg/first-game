@@ -5,13 +5,14 @@ import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src
 import { getUIElements } from './src/ui/elements.js';
 import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
-import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
+import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawPlayerDeath as renderPlayerDeath, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
 import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/projectiles.js';
+import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
 
 (() => {
   'use strict';
@@ -522,7 +523,10 @@ import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/p
     addShake(9);
     state.flash = .75;
     state.texts.push({ x: player.x, y: player.y - 28, text: `-${Math.round(amount)}`, life: .65, color: '#ff7d8d' });
-    if (player.hp <= 0) { player.hp = 0; gameOver(); }
+    if (player.hp <= 0) {
+      player.hp = 0;
+      beginPlayerDeath(state, player, addRing, addShake);
+    }
     return true;
   }
 
@@ -587,6 +591,10 @@ import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/p
   }
 
   function update(dt) {
+    if (state.mode === 'dying') {
+      updatePlayerDeath(state, dt, gameOver);
+      return;
+    }
     if (state.mode !== 'playing') return;
 
     state.time += dt;
@@ -906,7 +914,8 @@ import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/p
 
     renderAfterimages(ctx, state, biome());
     for (const e of state.enemies) renderEnemy(ctx, e, state, player);
-    renderPlayer(ctx, state, player, biome(), getDroneSlots());
+    if (state.mode === 'dying') renderPlayerDeath(ctx, state, player, biome());
+    else renderPlayer(ctx, state, player, biome(), getDroneSlots());
 
     for (const p of state.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.max);
