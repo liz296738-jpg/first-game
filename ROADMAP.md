@@ -51,7 +51,7 @@
 - [x] 敌人分离避免叠成一团
 - [x] 接触受击击退
 - [x] 远程预警攻击
-- [ ] 地面危险区
+- [x] 地面危险区
 - [x] Encounter Director
 - [x] 难度由 encounter budget 驱动
 
@@ -124,5 +124,5 @@
 
 1. 完成 Stage 0 的代码拆分，把配置、模拟、渲染和 UI 从单文件逐步解耦。
 2. 完成 Stage 1 剩余项：死亡溶解、Boss/扇区背景响应、特效质量档位。
-3. 完成 Stage 2 剩余项：地面危险区，并用试玩数据校准 Encounter Director。
+3. 试玩并校准已成型的 Stage 2：相位冲刺、预警、击退、地面危险区与 Encounter Director。
 4. 随后进入真正的数据驱动武器/升级体系。
