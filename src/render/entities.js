@@ -278,13 +278,30 @@ export function drawEnemy(ctx, enemy, state, player) {
       ctx.fill();
     }
   } else if (enemy.elite) {
-    ctx.rotate(state.time * 0.27);
-    ctx.globalAlpha = 0.2;
-    ctx.lineWidth = 1;
+    const mirror = enemy.eliteModifier === 'mirror';
+    const volatile = enemy.eliteModifier === 'volatile';
+    ctx.rotate(state.time * (mirror ? 0.18 : 0.34));
+    ctx.globalAlpha = mirror && enemy.mirrorShield > 0 ? 0.34 : 0.2;
+    ctx.lineWidth = mirror && enemy.mirrorShield > 0 ? 2 : 1;
+    ctx.strokeStyle = mirror ? '#8ff4ff' : volatile ? '#ff789b' : enemy.color;
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = mirror ? 20 : volatile ? 18 : 12;
     ctx.beginPath();
     ctx.arc(0, 0, enemy.r * 1.22, 0, Math.PI * 2);
     ctx.stroke();
+
+    if (mirror && enemy.mirrorShield > 0) {
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.r * 1.5, 0.2, Math.PI * 1.72);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.r * 1.62, Math.PI, Math.PI * 1.68);
+      ctx.stroke();
+    }
+
     ctx.globalAlpha = 1;
+    ctx.fillStyle = enemy.hit > 0 ? '#ffffff' : (volatile ? '#ff90ae' : enemy.color);
     ctx.beginPath();
     for (let i = 0; i < 10; i++) {
       const a = i / 10 * Math.PI * 2;
@@ -294,10 +311,23 @@ export function drawEnemy(ctx, enemy, state, player) {
     }
     ctx.closePath();
     ctx.fill();
+
     ctx.fillStyle = '#08131c';
     ctx.beginPath();
     ctx.arc(0, 0, enemy.r * 0.4, 0, Math.PI * 2);
     ctx.fill();
+
+    if (volatile) {
+      const pulse = 0.7 + Math.sin(state.time * 7 + enemy.phase) * 0.3;
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#ffd0dc';
+      ctx.shadowColor = '#ff6f91';
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.r * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   } else if (enemy.type === 'moth') {
     const charged = enemy.attackCharge > 0 || enemy.dashBoost > 0;
     ctx.rotate(Math.sin(state.time * 2.4 + enemy.phase) * 0.14);
