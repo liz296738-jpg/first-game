@@ -41,6 +41,12 @@
   const BUDGET = Object.freeze({
     enemies: 180, spawnSignals: 48, projectiles: 620, enemyProjectiles: 340, particles: 680, rings: 96, texts: 120, afterimages: 24,
   });
+  const FEEL = Object.freeze({
+    shakeMax: 12.5,
+    ambientDriftX: 2.4,
+    ambientDriftY: 1.6,
+    impactRingChance: .24,
+  });
   const keys = new Set();
   let animationId = 0;
   let lastFrame = performance.now();
@@ -560,7 +566,12 @@
   }
 
   function addRing(x, y, radius, color, width = 4, life = .45) {
+    if (state.rings.length >= BUDGET.rings) state.rings.shift();
     state.rings.push({ x, y, radius, color, width, life, max: life });
+  }
+
+  function addShake(amount) {
+    state.shake = Math.min(FEEL.shakeMax, Math.max(state.shake, amount));
   }
 
   function damageEnemy(enemy, amount, hitColor = '#dffbff', crit = false) {
@@ -568,6 +579,10 @@
     enemy.hit = 1;
     state.texts.push({ x: enemy.x, y: enemy.y - enemy.r, text: `${crit ? '✦ ' : ''}${Math.round(amount)}`, life: .48, color: crit ? '#ffe56b' : hitColor });
     for (let j = 0; j < 5; j++) state.particles.push({ x: enemy.x, y: enemy.y, vx: rand(-75,75), vy: rand(-75,75), life: .24, max: .24, size: rand(1,3), color: crit ? '#ffe56b' : hitColor });
+    if (crit || enemy.elite || enemy.boss || chance(FEEL.impactRingChance)) {
+      addRing(enemy.x, enemy.y, crit ? 17 : enemy.elite ? 15 : 11, crit ? '#ffe56b' : hitColor, crit ? 2 : 1.3, crit ? .18 : .13);
+    }
+    if (crit) addShake(1.7);
     if (enemy.hp <= 0) killEnemy(enemy);
   }
 
@@ -596,7 +611,7 @@
       state.particles.push({ x: enemy.x, y: enemy.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(.25, .72), max: .72, size: rand(1.5, 4.8), color: enemy.color });
     }
     addRing(enemy.x, enemy.y, enemy.boss ? 140 : enemy.elite ? 90 : 42, enemy.color, enemy.boss ? 6 : 4, enemy.boss ? .82 : .45);
-    state.shake = Math.max(state.shake, enemy.boss ? 16 : enemy.elite ? 10 : 2.8);
+    addShake(enemy.boss ? 12.5 : enemy.elite ? 8.5 : 2.8);
   }
 
   function addXp(value) {
@@ -699,7 +714,7 @@
     player.invuln = Math.max(player.invuln, player.dashDuration + .05);
     player.angle = Math.atan2(dy, dx);
     addRing(player.x, player.y, 30, biome().accent2, 2.4, .25);
-    state.shake = Math.max(state.shake, 3.2);
+    addShake(3.2);
     return true;
   }
 
@@ -711,7 +726,7 @@
     const radius = 110 + player.novaLevel * 28;
     const damage = playerNovaDamage();
     addRing(player.x, player.y, radius, biome().accent2, 6, .72);
-    state.shake = Math.max(state.shake, 6);
+    addShake(6);
     showToast('脉冲新星', 700);
     for (const e of state.enemies) {
       if (e.dead) continue;
@@ -761,7 +776,7 @@
     }
     player.hp -= amount;
     player.invuln = .58;
-    state.shake = 9;
+    addShake(9);
     state.flash = .75;
     state.texts.push({ x: player.x, y: player.y - 28, text: `-${Math.round(amount)}`, life: .65, color: '#ff7d8d' });
     if (player.hp <= 0) { player.hp = 0; gameOver(); }
@@ -1563,7 +1578,9 @@
     ctx.save();
     const sx = state.shake > .25 ? rand(-state.shake, state.shake) : 0;
     const sy = state.shake > .25 ? rand(-state.shake, state.shake) : 0;
-    ctx.translate(sx, sy);
+    const driftX = Math.sin(state.time * .13) * FEEL.ambientDriftX + Math.sin(state.time * .037 + 1.7) * .8;
+    const driftY = Math.cos(state.time * .11) * FEEL.ambientDriftY + Math.sin(state.time * .043) * .55;
+    ctx.translate(sx + driftX, sy + driftY);
 
     drawBackground();
     drawSpawnSignals();
