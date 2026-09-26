@@ -8,11 +8,13 @@ import { drawBackground as renderBackground } from './src/render/background.js';
 import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawPlayerDeath as renderPlayerDeath, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { drawProjectiles as renderProjectiles } from './src/render/projectiles.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
+import { STARTER_WEAPON_ID, getWeapon } from './src/data/weapons.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
 import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/projectiles.js';
+import { equipWeapon } from './src/systems/weapons.js';
 import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
 import { requestDash as tryDash, updatePlayerMovement } from './src/systems/movement.js';
 
@@ -64,6 +66,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
   const state = createRunState();
 
   const player = createPlayerState(W, H);
+  equipWeapon(player, getWeapon(STARTER_WEAPON_ID));
 
   function currentBiomeIndex() {
     return Math.floor(state.time / 75) % BIOMES.length;
@@ -138,6 +141,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
 
   function resetPlayer() {
     Object.assign(player, createPlayerState(W, H));
+    equipWeapon(player, getWeapon(STARTER_WEAPON_ID));
   }
 
   function resetState() {
@@ -867,6 +871,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
 
   function updateBuildTags() {
     const tags = [
+      `${player.weaponName || '武器'}`,
       `ATK ${Math.round(player.damage)}`,
       `射速 ${player.fireRate.toFixed(1)}`,
       `弹丸 ${player.projectileCount}`,
