@@ -116,6 +116,64 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   ctx.restore();
 }
 
+function drawGlassExpanseSignature(ctx, W, H, state, player, colors, quality) {
+  if (colors.id !== 'glass-expanse') return;
+
+  const strength = quality?.backgroundScale ?? 1;
+  const px = player.x / W - 0.5;
+
+  ctx.save();
+  ctx.globalAlpha = 0.2 * strength;
+  ctx.strokeStyle = 'rgba(178,235,255,.26)';
+  ctx.fillStyle = 'rgba(118,164,221,.035)';
+  ctx.shadowColor = '#7de7ff';
+  ctx.shadowBlur = 8 * strength;
+  ctx.lineWidth = 1;
+
+  const shards = [
+    { x: W * 0.18 - px * 18, y: H * 0.20, w: 84, h: 260, r: -0.28 },
+    { x: W * 0.36 - px * 11, y: H * 0.09, w: 46, h: 190, r: 0.18 },
+    { x: W * 0.67 - px * 21, y: H * 0.17, w: 70, h: 230, r: 0.34 },
+    { x: W * 0.88 - px * 14, y: H * 0.38, w: 52, h: 170, r: -0.17 },
+  ];
+
+  for (let i = 0; i < shards.length; i++) {
+    const shard = shards[i];
+    ctx.save();
+    ctx.translate(shard.x, shard.y + Math.sin(state.time * 0.035 + i) * 4);
+    ctx.rotate(shard.r);
+    ctx.beginPath();
+    ctx.moveTo(0, -shard.h * 0.52);
+    ctx.lineTo(shard.w * 0.48, shard.h * 0.38);
+    ctx.lineTo(shard.w * 0.08, shard.h * 0.52);
+    ctx.lineTo(-shard.w * 0.4, shard.h * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.globalAlpha *= 0.58;
+    ctx.beginPath();
+    ctx.moveTo(-shard.w * 0.16, -shard.h * 0.3);
+    ctx.lineTo(shard.w * 0.13, shard.h * 0.27);
+    ctx.lineTo(shard.w * 0.34, shard.h * 0.05);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = 0.08 * strength;
+  ctx.strokeStyle = '#9ff4ff';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const y = H * (0.58 + i * 0.055);
+    ctx.beginPath();
+    ctx.moveTo(W * 0.08, y);
+    ctx.lineTo(W * 0.92, y + i * 7);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function drawBossPressure(ctx, W, H, state, colors, quality) {
   const bossActive = state.enemies.some(enemy => enemy.boss)
     || state.spawnSignals.some(signal => signal.boss);
@@ -194,6 +252,7 @@ function drawProps(ctx, W, H, state, player, colors, quality) {
 
 export function drawBackground(ctx, W, H, state, player, colors, quality) {
   drawBackdropLayer(ctx, W, H, state, player, colors, quality);
+  drawGlassExpanseSignature(ctx, W, H, state, player, colors, quality);
   drawProps(ctx, W, H, state, player, colors, quality);
   drawBossPressure(ctx, W, H, state, colors, quality);
 
