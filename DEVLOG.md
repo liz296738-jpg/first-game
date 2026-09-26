@@ -47,3 +47,17 @@
 - Add enemy separation and contact knockback.
 - Define hard entity/VFX budgets and degradation behavior.
 - Begin Encounter Director work so difficulty comes from compositions rather than spawn-rate inflation.
+
+
+## 2026-09-26 — Alpha 0.3 runtime budget & collision pass
+
+- Added a spatial-grid enemy separation pass so dense hordes preserve readable silhouettes instead of collapsing into a single blob.
+- Added contact knockback so damage produces spatial consequence instead of feeling like a silent HP subtraction.
+- Added hard runtime caps for enemies, spawn warnings, player/enemy projectiles, particles, rings, damage text and dash afterimages.
+- Surfaced budget usage in the F3 diagnostics panel.
+- Re-validated the committed `game.js` with the JavaScript parser after the update.
+
+### Next
+- Introduce an Encounter Director with authored enemy compositions and threat budgets.
+- Add a controlled impact-ring pass and screen-shake budget.
+- Begin modularizing the monolithic runtime before content growth accelerates.
