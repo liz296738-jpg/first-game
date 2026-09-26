@@ -110,6 +110,11 @@ export function updateObservatory({
 export function updateBossBeams(state, player, dt, takePlayerHit, addRing) {
   for (let i = state.bossBeams.length - 1; i >= 0; i--) {
     const beam = state.bossBeams[i];
+    const source = state.enemies.find(enemy => enemy.spawnId === beam.bossId && !enemy.dead);
+    if (source) {
+      beam.x = source.x;
+      beam.y = source.y;
+    }
 
     if (beam.charge > 0) {
       beam.charge -= dt;
