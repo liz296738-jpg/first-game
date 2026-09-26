@@ -298,6 +298,62 @@ export function drawEnemy(ctx, enemy, state, player) {
     ctx.beginPath();
     ctx.arc(0, 0, enemy.r * 0.4, 0, Math.PI * 2);
     ctx.fill();
+  } else if (enemy.type === 'moth') {
+    const charged = enemy.attackCharge > 0 || enemy.dashBoost > 0;
+    ctx.rotate(Math.sin(state.time * 2.4 + enemy.phase) * 0.14);
+    ctx.fillStyle = enemy.hit > 0 ? '#ffffff' : enemy.color;
+    ctx.shadowColor = enemy.color;
+    ctx.shadowBlur = charged ? 22 : 13;
+
+    ctx.beginPath();
+    ctx.moveTo(enemy.r * 0.25, 0);
+    ctx.quadraticCurveTo(-enemy.r * 0.2, -enemy.r * 1.25, -enemy.r * 1.05, -enemy.r * 0.52);
+    ctx.lineTo(-enemy.r * 0.35, 0);
+    ctx.lineTo(-enemy.r * 1.05, enemy.r * 0.52);
+    ctx.quadraticCurveTo(-enemy.r * 0.2, enemy.r * 1.25, enemy.r * 0.25, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#120c19';
+    ctx.beginPath();
+    ctx.ellipse(enemy.r * 0.14, 0, enemy.r * 0.34, enemy.r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = charged ? '#fff0ff' : 'rgba(238,198,255,.65)';
+    ctx.lineWidth = charged ? 1.8 : 1;
+    ctx.beginPath();
+    ctx.moveTo(-enemy.r * 0.2, -enemy.r * 0.62);
+    ctx.lineTo(-enemy.r * 0.58, -enemy.r * 0.18);
+    ctx.moveTo(-enemy.r * 0.2, enemy.r * 0.62);
+    ctx.lineTo(-enemy.r * 0.58, enemy.r * 0.18);
+    ctx.stroke();
+  } else if (enemy.type === 'seeder') {
+    ctx.rotate(state.time * 0.18 + enemy.phase * 0.12);
+    ctx.strokeStyle = enemy.hit > 0 ? '#ffffff' : enemy.color;
+    ctx.fillStyle = '#0d0a18';
+    ctx.lineWidth = 2.8;
+    ctx.shadowColor = enemy.color;
+    ctx.shadowBlur = 17;
+
+    for (let i = 0; i < 3; i++) {
+      ctx.save();
+      ctx.rotate(i * Math.PI * 2 / 3);
+      ctx.beginPath();
+      ctx.ellipse(enemy.r * 0.48, 0, enemy.r * 0.58, enemy.r * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.r * 0.52, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = enemy.hit > 0 ? '#fff' : '#cbbfff';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.r * 0.16, 0, Math.PI * 2);
+    ctx.fill();
   } else if (enemy.type === 'swift') {
     ctx.beginPath();
     ctx.moveTo(enemy.r * 1.3, 0);
