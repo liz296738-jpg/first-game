@@ -38,6 +38,9 @@
 
   const W = canvas.width;
   const H = canvas.height;
+  const BUDGET = Object.freeze({
+    enemies: 180, spawnSignals: 48, projectiles: 620, enemyProjectiles: 340, particles: 680, rings: 96, texts: 120, afterimages: 24,
+  });
   const keys = new Set();
   let animationId = 0;
   let lastFrame = performance.now();
@@ -314,6 +317,7 @@
   }
 
   function queueEnemy(kind = null, elite = false, boss = false) {
+    if (state.enemies.length + state.spawnSignals.length >= BUDGET.enemies || state.spawnSignals.length >= BUDGET.spawnSignals) return;
     const pos = randomSpawnPoint(boss);
     const max = boss ? 1.35 : elite ? .92 : .42;
     state.spawnSignals.push({ kind, elite, boss, x: pos.x, y: pos.y, edge: pos.edge, life: max, max });
@@ -614,13 +618,13 @@
   }
 
   function takePlayerHit(amount) {
-    if (player.invuln > 0) return;
+    if (player.invuln > 0) return false;
     if (player.shield > 0) {
       player.shield -= 1;
       player.invuln = .32;
       addRing(player.x, player.y, 60, '#dff7ff', 4, .42);
       showToast('护盾抵消伤害', 600);
-      return;
+      return true;
     }
     player.hp -= amount;
     player.invuln = .58;
@@ -628,6 +632,62 @@
     state.flash = .75;
     state.texts.push({ x: player.x, y: player.y - 28, text: `-${Math.round(amount)}`, life: .65, color: '#ff7d8d' });
     if (player.hp <= 0) { player.hp = 0; gameOver(); }
+    return true;
+  }
+
+  function applyEnemySeparation(dt) {
+    const cellSize = 64;
+    const grid = new Map();
+    for (let i = 0; i < state.enemies.length; i++) {
+      const e = state.enemies[i];
+      if (e.dead) continue;
+      const cx = Math.floor(e.x / cellSize), cy = Math.floor(e.y / cellSize);
+      const key = cx + ',' + cy;
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(i);
+    }
+
+    for (let i = 0; i < state.enemies.length; i++) {
+      const a = state.enemies[i];
+      if (a.dead) continue;
+      const cx = Math.floor(a.x / cellSize), cy = Math.floor(a.y / cellSize);
+      for (let gx = cx - 1; gx <= cx + 1; gx++) {
+        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+          const list = grid.get(gx + ',' + gy);
+          if (!list) continue;
+          for (const j of list) {
+            if (j <= i) continue;
+            const b = state.enemies[j];
+            if (!b || b.dead) continue;
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d2 = dx * dx + dy * dy;
+            const minD = (a.r + b.r) * .72;
+            if (d2 >= minD * minD) continue;
+            if (d2 < .01) { dx = rand(-1, 1); dy = rand(-1, 1); d2 = dx * dx + dy * dy; }
+            const d = Math.sqrt(d2);
+            const overlap = minD - d;
+            const nx = dx / d, ny = dy / d;
+            const aMass = a.boss ? 4 : a.elite ? 2 : 1;
+            const bMass = b.boss ? 4 : b.elite ? 2 : 1;
+            const total = aMass + bMass;
+            const push = overlap * Math.min(1, dt * 18);
+            a.x -= nx * push * (bMass / total);
+            a.y -= ny * push * (bMass / total);
+            b.x += nx * push * (aMass / total);
+            b.y += ny * push * (aMass / total);
+          }
+        }
+      }
+    }
+  }
+
+  function enforceBudgets() {
+    if (state.projectiles.length > BUDGET.projectiles) state.projectiles.splice(0, state.projectiles.length - BUDGET.projectiles);
+    if (state.enemyProjectiles.length > BUDGET.enemyProjectiles) state.enemyProjectiles.splice(0, state.enemyProjectiles.length - BUDGET.enemyProjectiles);
+    if (state.particles.length > BUDGET.particles) state.particles.splice(0, state.particles.length - BUDGET.particles);
+    if (state.rings.length > BUDGET.rings) state.rings.splice(0, state.rings.length - BUDGET.rings);
+    if (state.texts.length > BUDGET.texts) state.texts.splice(0, state.texts.length - BUDGET.texts);
+    if (state.afterimages.length > BUDGET.afterimages) state.afterimages.splice(0, state.afterimages.length - BUDGET.afterimages);
   }
 
   function update(dt) {
@@ -830,10 +890,21 @@
 
       const minD = player.r + e.r;
       if (d < minD) {
-        takePlayerHit(e.damage);
+        const hitTaken = takePlayerHit(e.damage);
+        if (hitTaken) {
+          const knock = e.boss ? 310 : e.elite ? 250 : 205;
+          player.vx += baseDirX * knock;
+          player.vy += baseDirY * knock;
+          const enemyKick = e.boss ? 4 : e.elite ? 10 : 18;
+          e.x -= baseDirX * enemyKick;
+          e.y -= baseDirY * enemyKick;
+          addRing(player.x, player.y, 34, '#ff8da0', 2.6, .2);
+        }
         if (state.mode === 'gameover') return;
       }
     }
+
+    applyEnemySeparation(dt);
 
     for (let pi = state.projectiles.length - 1; pi >= 0; pi--) {
       const p = state.projectiles[pi];
@@ -907,6 +978,8 @@
       state.banners[i].life -= dt;
       if (state.banners[i].life <= 0) state.banners.splice(i, 1);
     }
+
+    enforceBudgets();
   }
 
   function drawBackdropLayer(colors) {
@@ -1448,7 +1521,8 @@
         'FPS ' + Math.round(fpsSmoothed) +
         '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
-        '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length);
+        '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
+        '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies;
     }
     updateBuildTags();
   }
