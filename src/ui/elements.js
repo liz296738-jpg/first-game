@@ -5,6 +5,7 @@ export function getUIElements() {
     pauseScreen: document.getElementById('pauseScreen'),
     gameOverScreen: document.getElementById('gameOverScreen'),
     startBtn: document.getElementById('startBtn'),
+    weaponChoices: document.getElementById('weaponChoices'),
     pauseBtn: document.getElementById('pauseBtn'),
     vfxBtn: document.getElementById('vfxBtn'),
     resumeBtn: document.getElementById('resumeBtn'),
