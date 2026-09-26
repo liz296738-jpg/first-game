@@ -10,11 +10,14 @@ export function syncResonances(player) {
   for (const resonance of RESONANCES) {
     if (hasResonance(player, resonance.id)) continue;
 
-    const ready = Object.entries(resonance.requirements).every(
+    const affinityReady = Object.entries(resonance.requirements).every(
       ([affinity, count]) => (player.affinities?.[affinity] || 0) >= count,
     );
+    const weaponReady = (resonance.weaponTags || []).every(
+      tag => player.weaponTags?.includes(tag),
+    );
 
-    if (ready) {
+    if (affinityReady && weaponReady) {
       player.resonances[resonance.id] = true;
       unlocked.push(resonance);
     }
