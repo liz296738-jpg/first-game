@@ -19,6 +19,7 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   {
     id: 'rate',
     icon: 'RPM',
+    requirements: [{ source: 'weaponTag', key: 'projectile', truthy: true }],
     rarity: 'common',
     affinity: 'machine',
     name: '超频扳机',
@@ -49,6 +50,7 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
   {
     id: 'bullet',
     icon: 'VEL',
+    requirements: [{ source: 'weaponTag', key: 'projectile', truthy: true }],
     rarity: 'common',
     affinity: 'solar',
     name: '磁轨加速',
@@ -65,12 +67,16 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
     affinity: 'machine',
     name: '分裂火控',
     desc: '额外发射 1 枚投射物。',
-    requirements: [{ source: 'stat', key: 'projectileCount', max: 6 }],
+    requirements: [
+      { source: 'weaponTag', key: 'projectile', truthy: true },
+      { source: 'stat', key: 'projectileCount', max: 6 },
+    ],
     effects: [{ op: 'capAdd', stat: 'projectileCount', value: 1, cap: 7 }],
   },
   {
     id: 'pierce',
     icon: 'PEN',
+    requirements: [{ source: 'weaponTag', key: 'projectile', truthy: true }],
     rarity: 'common',
     affinity: 'void',
     name: '穿甲协议',
@@ -84,7 +90,10 @@ export const UPGRADE_DEFINITIONS = Object.freeze([
     affinity: 'solar',
     name: '弱点标记',
     desc: '暴击率 +10%。',
-    requirements: [{ source: 'stat', key: 'crit', max: 0.549 }],
+    requirements: [
+      { source: 'weaponTag', key: 'projectile', truthy: true },
+      { source: 'stat', key: 'crit', max: 0.549 },
+    ],
     effects: [{ op: 'capAdd', stat: 'crit', value: 0.10, cap: 0.65 }],
   },
   {
