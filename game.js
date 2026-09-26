@@ -89,6 +89,11 @@
     cores: 0,
     spawnTimer: 0,
     eliteTimer: 0,
+    directorTimer: 0,
+    directorBudget: 0,
+    directorEncounter: 'CALM',
+    encounterCount: 0,
+    lastEncounterId: '',
     nextBossAt: 55,
     shake: 0,
     flash: 0,
@@ -258,7 +263,7 @@
   function resetState() {
     Object.assign(state, {
       mode: 'playing', time: 0, wave: 1, kills: 0, cores: 0,
-      spawnTimer: .45, eliteTimer: 20, nextBossAt: 55, shake: 0, flash: 0,
+      spawnTimer: .75, eliteTimer: 24, directorTimer: 5.5, directorBudget: 0, directorEncounter: 'CALM', encounterCount: 0, lastEncounterId: '', nextBossAt: 55, shake: 0, flash: 0,
       enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [], spawnSignals: [], afterimages: [],
       lastStageIndex: 0,
     });
@@ -307,6 +312,24 @@
     boss: { r: 34, hp: 660, speed: 50, damage: 24, color: '#f6f8ff', xp: 60 },
   };
 
+  const ENEMY_THREAT = Object.freeze({
+    drone: 1,
+    swift: 1.35,
+    caster: 2.4,
+    brute: 3.2,
+    boss: 12,
+  });
+
+  const ENCOUNTER_TEMPLATES = Object.freeze([
+    { id: 'drift-line', name: '漂移列阵', minTime: 0, cost: 4.5, weight: 4 },
+    { id: 'needle-pincer', name: '针翼夹击', minTime: 18, cost: 6.2, weight: 3.5 },
+    { id: 'bulwark-screen', name: '重盾推进', minTime: 38, cost: 8.2, weight: 2.6 },
+    { id: 'crossfire', name: '远星交叉火力', minTime: 52, cost: 8.8, weight: 2.7 },
+    { id: 'spearhead', name: '星骸矛头', minTime: 68, cost: 10.2, weight: 2.2 },
+    { id: 'closing-net', name: '四向合围', minTime: 84, cost: 11.4, weight: 2.1 },
+    { id: 'elite-anchor', name: '精英锚点', minTime: 105, cost: 12.6, weight: 1.35 },
+  ]);
+
   function randomSpawnPoint(boss = false) {
     const edge = Math.floor(Math.random() * 4);
     const margin = boss ? 56 : 42;
@@ -316,12 +339,122 @@
     return { x: -margin, y: rand(-margin, H + margin), edge };
   }
 
-  function queueEnemy(kind = null, elite = false, boss = false) {
-    if (state.enemies.length + state.spawnSignals.length >= BUDGET.enemies || state.spawnSignals.length >= BUDGET.spawnSignals) return;
-    const pos = randomSpawnPoint(boss);
+  function edgeSpawnPoint(edge, lane = .5, margin = 42) {
+    const t = clamp(lane, .06, .94);
+    if (edge === 0) return { x: W * t, y: -margin, edge };
+    if (edge === 1) return { x: W + margin, y: H * t, edge };
+    if (edge === 2) return { x: W * (1 - t), y: H + margin, edge };
+    return { x: -margin, y: H * (1 - t), edge };
+  }
+
+  function queueEnemy(kind = null, elite = false, boss = false, spawnPoint = null, delay = 0) {
+    if (state.enemies.length + state.spawnSignals.length >= BUDGET.enemies || state.spawnSignals.length >= BUDGET.spawnSignals) return false;
+    const pos = spawnPoint || randomSpawnPoint(boss);
     const max = boss ? 1.35 : elite ? .92 : .42;
-    state.spawnSignals.push({ kind, elite, boss, x: pos.x, y: pos.y, edge: pos.edge, life: max, max });
+    state.spawnSignals.push({ kind, elite, boss, x: pos.x, y: pos.y, edge: pos.edge, delay: Math.max(0, delay), life: max, max });
     if (boss) { banner('异常质量正在接近'); showToast('高能反应：准备迎击', 1200); }
+    return true;
+  }
+
+  function encounterThreat(kind, elite = false) {
+    return (ENEMY_THREAT[kind] || 1) * (elite ? 3.15 : 1);
+  }
+
+  function currentEncounterBudget() {
+    const timeGrowth = state.time / 17;
+    const levelGrowth = Math.max(0, player.level - 1) * .16;
+    return clamp(5 + timeGrowth + levelGrowth, 5, 18);
+  }
+
+  function weightedEncounterChoice(candidates) {
+    let total = candidates.reduce((sum, item) => sum + item.weight, 0);
+    let roll = Math.random() * total;
+    for (const item of candidates) {
+      roll -= item.weight;
+      if (roll <= 0) return item;
+    }
+    return candidates[candidates.length - 1];
+  }
+
+  function scheduleEncounter(template, budget) {
+    const baseEdge = Math.floor(Math.random() * 4);
+    const opposite = (baseEdge + 2) % 4;
+    const sideA = (baseEdge + 1) % 4;
+    const sideB = (baseEdge + 3) % 4;
+    let spent = 0;
+    let sequence = 0;
+
+    const add = (kind, edge, lane, elite = false, delay = null) => {
+      const cost = encounterThreat(kind, elite);
+      if (spent + cost > budget + .2) return false;
+      const queued = queueEnemy(kind, elite, false, edgeSpawnPoint(edge, lane), delay ?? sequence * .07);
+      if (!queued) return false;
+      spent += cost;
+      sequence += 1;
+      return true;
+    };
+
+    if (template.id === 'drift-line') {
+      [0.2, 0.36, 0.52, 0.68, 0.84].forEach((lane, i) => add(i === 2 && state.time > 28 ? 'swift' : 'drone', baseEdge, lane));
+    } else if (template.id === 'needle-pincer') {
+      [0.28, 0.5, 0.72].forEach(lane => add('swift', baseEdge, lane));
+      [0.3, 0.5, 0.7].forEach(lane => add('swift', opposite, lane, false, .1 + sequence * .06));
+    } else if (template.id === 'bulwark-screen') {
+      add('brute', baseEdge, .36);
+      add('brute', baseEdge, .64);
+      [0.18, 0.5, 0.82].forEach(lane => add('drone', baseEdge, lane, false, .12 + sequence * .06));
+    } else if (template.id === 'crossfire') {
+      add('caster', baseEdge, .5);
+      add('caster', opposite, .5, false, .16);
+      [0.28, 0.72].forEach(lane => add('drone', sideA, lane, false, .2 + sequence * .05));
+      [0.32, 0.68].forEach(lane => add('drone', sideB, lane, false, .22 + sequence * .05));
+    } else if (template.id === 'spearhead') {
+      add('brute', baseEdge, .5);
+      add('swift', baseEdge, .28, false, .08);
+      add('swift', baseEdge, .72, false, .12);
+      [0.14, 0.38, 0.62, 0.86].forEach(lane => add('drone', baseEdge, lane, false, .16 + sequence * .05));
+    } else if (template.id === 'closing-net') {
+      [0, 1, 2, 3].forEach((edge, i) => {
+        add(i % 2 ? 'swift' : 'drone', edge, .38, false, i * .08);
+        add('drone', edge, .66, false, .16 + i * .08);
+      });
+    } else if (template.id === 'elite-anchor') {
+      const eliteKind = state.time > 135 && chance(.42) ? 'caster' : 'brute';
+      add(eliteKind, baseEdge, .5, true, 0);
+      [0.22, 0.38, 0.62, 0.78].forEach((lane, i) => add(i % 2 ? 'swift' : 'drone', baseEdge, lane, false, .16 + i * .07));
+    }
+
+    let filler = 0;
+    while (spent + ENEMY_THREAT.drone <= budget && filler < 8) {
+      const edge = Math.floor(Math.random() * 4);
+      if (!add(state.time > 62 && chance(.26) ? 'swift' : 'drone', edge, rand(.16, .84), false, .28 + filler * .055)) break;
+      filler += 1;
+    }
+
+    state.directorBudget = Math.round(budget * 10) / 10;
+    state.directorEncounter = template.name;
+    state.lastEncounterId = template.id;
+    state.encounterCount += 1;
+  }
+
+  function runEncounterDirector() {
+    const bossActive = state.enemies.some(e => e.boss) || state.spawnSignals.some(s => s.boss);
+    if (bossActive) {
+      state.directorEncounter = 'BOSS';
+      state.directorTimer = 3.2;
+      return;
+    }
+
+    const budget = currentEncounterBudget();
+    let candidates = ENCOUNTER_TEMPLATES.filter(item => item.minTime <= state.time && item.cost <= budget + .35);
+    const alternates = candidates.filter(item => item.id !== state.lastEncounterId);
+    if (alternates.length) candidates = alternates;
+    if (!candidates.length) candidates = [ENCOUNTER_TEMPLATES[0]];
+    const template = weightedEncounterChoice(candidates);
+    scheduleEncounter(template, budget);
+
+    const pace = clamp(8.4 - state.time / 105, 5.6, 8.4);
+    state.directorTimer = rand(pace * .84, pace * 1.18);
   }
 
   function spawnEnemy(kind = null, elite = false, boss = false, spawnPoint = null) {
@@ -754,23 +887,28 @@
       });
     }
 
-    const spawnRate = Math.max(.12, .72 - state.time / 340);
+    // Ambient pressure keeps the field alive; major difficulty comes from authored encounter packs.
+    const ambientRate = Math.max(.56, 1.28 - state.time / 520);
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
-      const extra = state.time > 110 && chance(.34) ? 1 : 0;
-      for (let i = 0; i <= extra; i++) queueEnemy();
-      state.spawnTimer = spawnRate;
+      const ambientKind = state.time > 50 && chance(.18) ? 'swift' : 'drone';
+      queueEnemy(ambientKind);
+      state.spawnTimer = ambientRate * rand(.82, 1.18);
     }
+
+    state.directorTimer -= dt;
+    if (state.directorTimer <= 0) runEncounterDirector();
 
     state.eliteTimer -= dt;
     if (state.eliteTimer <= 0) {
-      queueEnemy(null, true, false);
-      state.eliteTimer = Math.max(16, 31 - state.time / 55);
+      queueEnemy(state.time > 75 && chance(.34) ? 'caster' : null, true, false);
+      state.eliteTimer = Math.max(22, 34 - state.time / 75);
     }
 
     if (state.time >= state.nextBossAt) {
       queueEnemy('boss', true, true);
       state.nextBossAt += 58;
+      state.directorTimer = Math.max(state.directorTimer, 4.5);
     }
 
     player.fireTimer -= dt;
@@ -805,6 +943,10 @@
 
     for (let i = state.spawnSignals.length - 1; i >= 0; i--) {
       const signal = state.spawnSignals[i];
+      if (signal.delay > 0) {
+        signal.delay -= dt;
+        continue;
+      }
       signal.life -= dt;
       if (signal.life <= 0) {
         spawnEnemy(signal.kind, signal.elite, signal.boss, signal);
@@ -1167,6 +1309,7 @@
 
   function drawSpawnSignals() {
     for (const signal of state.spawnSignals) {
+      if (signal.delay > 0) continue;
       const x = clamp(signal.x, 22, W - 22);
       const y = clamp(signal.y, 22, H - 22);
       const progress = 1 - signal.life / signal.max;
@@ -1522,7 +1665,8 @@
         '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
         '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
-        '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies;
+        '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies +
+        '\nDIRECTOR ' + state.directorEncounter + ' [' + state.directorBudget.toFixed(1) + ']';
     }
     updateBuildTags();
   }
