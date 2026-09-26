@@ -30,6 +30,10 @@
     toast: document.getElementById('toast'),
     stageText: document.getElementById('stageText'),
     buildTags: document.getElementById('buildTags'),
+    dashFill: document.getElementById('dashFill'),
+    dashText: document.getElementById('dashText'),
+    dashBtn: document.getElementById('dashBtn'),
+    debugPanel: document.getElementById('debugPanel'),
   };
 
   const W = canvas.width;
@@ -38,6 +42,8 @@
   let animationId = 0;
   let lastFrame = performance.now();
   let toastTimer = 0;
+  let fpsSmoothed = 60;
+  let debugVisible = false;
 
   const BIOMES = [
     {
@@ -95,6 +101,8 @@
     props: [],
     rings: [],
     banners: [],
+    spawnSignals: [],
+    afterimages: [],
     lastStageIndex: 0,
   };
 
@@ -131,6 +139,16 @@
     lifesteal: 0,
     angle: -Math.PI / 2,
     thrust: 0,
+    vx: 0,
+    vy: 0,
+    dashCooldown: 0,
+    dashCooldownMax: 1.15,
+    dashTimer: 0,
+    dashDuration: .18,
+    dashSpeed: 760,
+    dashDirX: 1,
+    dashDirY: 0,
+    dashAfterimageTimer: 0,
   };
 
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
@@ -229,6 +247,8 @@
       novaLevel: 0, novaTimer: 7, droneLevel: 0, droneFireTimer: 0,
       shield: 0, lifesteal: 0,
       angle: -Math.PI / 2, thrust: 0,
+      vx: 0, vy: 0, dashCooldown: 0, dashCooldownMax: 1.15, dashTimer: 0, dashDuration: .18, dashSpeed: 760,
+      dashDirX: 1, dashDirY: 0, dashAfterimageTimer: 0,
     });
   }
 
@@ -236,7 +256,7 @@
     Object.assign(state, {
       mode: 'playing', time: 0, wave: 1, kills: 0, cores: 0,
       spawnTimer: .45, eliteTimer: 20, nextBossAt: 55, shake: 0, flash: 0,
-      enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [],
+      enemies: [], projectiles: [], enemyProjectiles: [], gems: [], particles: [], texts: [], rings: [], banners: [], spawnSignals: [], afterimages: [],
       lastStageIndex: 0,
     });
     resetPlayer();
@@ -512,6 +532,24 @@
     return { dx, dy };
   }
 
+  function requestDash() {
+    if (state.mode !== 'playing' || player.dashCooldown > 0 || player.dashTimer > 0) return false;
+    const input = playerInput();
+    const moving = Math.hypot(input.dx, input.dy) > .05;
+    const dx = moving ? input.dx : Math.cos(player.angle);
+    const dy = moving ? input.dy : Math.sin(player.angle);
+    player.dashDirX = dx;
+    player.dashDirY = dy;
+    player.dashTimer = player.dashDuration;
+    player.dashCooldown = player.dashCooldownMax;
+    player.dashAfterimageTimer = 0;
+    player.invuln = Math.max(player.invuln, player.dashDuration + .05);
+    player.angle = Math.atan2(dy, dx);
+    addRing(player.x, player.y, 30, biome().accent2, 2.4, .25);
+    state.shake = Math.max(state.shake, 3.2);
+    return true;
+  }
+
   function playerNovaDamage() {
     return player.damage * (.95 + player.novaLevel * .42);
   }
@@ -596,25 +634,47 @@
 
     const input = playerInput();
     const moving = Math.hypot(input.dx, input.dy) > .05;
-    if (moving) {
-      const desired = Math.atan2(input.dy, input.dx);
-      const delta = ((desired - player.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-      player.angle += delta * Math.min(1, dt * 8.5);
-    }
-    player.thrust += ((moving ? 1 : 0) - player.thrust) * Math.min(1, dt * 9);
-    player.x = clamp(player.x + input.dx * player.speed * dt, player.r + 8, W - player.r - 8);
-    player.y = clamp(player.y + input.dy * player.speed * dt, player.r + 8, H - player.r - 8);
+    player.dashCooldown = Math.max(0, player.dashCooldown - dt);
 
-    if (moving && chance(dt * 32)) {
+    if (player.dashTimer > 0) {
+      player.dashTimer = Math.max(0, player.dashTimer - dt);
+      player.dashAfterimageTimer -= dt;
+      player.vx = player.dashDirX * player.dashSpeed;
+      player.vy = player.dashDirY * player.dashSpeed;
+      player.thrust += (1.25 - player.thrust) * Math.min(1, dt * 20);
+      if (player.dashAfterimageTimer <= 0) {
+        state.afterimages.push({ x: player.x, y: player.y, angle: player.angle, life: .22, max: .22 });
+        player.dashAfterimageTimer = .035;
+      }
+    } else {
+      const targetVX = input.dx * player.speed;
+      const targetVY = input.dy * player.speed;
+      const responsiveness = moving ? 12.5 : 18;
+      const blend = 1 - Math.exp(-responsiveness * dt);
+      player.vx = lerp(player.vx, targetVX, blend);
+      player.vy = lerp(player.vy, targetVY, blend);
+      const velocityMag = Math.hypot(player.vx, player.vy);
+      if (velocityMag > 8) {
+        const desired = Math.atan2(player.vy, player.vx);
+        const delta = ((desired - player.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        player.angle += delta * Math.min(1, dt * 9.5);
+      }
+      player.thrust += ((moving ? 1 : 0) - player.thrust) * Math.min(1, dt * 9);
+    }
+
+    player.x = clamp(player.x + player.vx * dt, player.r + 8, W - player.r - 8);
+    player.y = clamp(player.y + player.vy * dt, player.r + 8, H - player.r - 8);
+
+    if ((moving || player.dashTimer > 0) && chance(dt * (player.dashTimer > 0 ? 70 : 32))) {
       const back = player.angle + Math.PI;
       const side = rand(-7, 7);
       state.particles.push({
         x: player.x + Math.cos(back) * 18 + Math.cos(back + Math.PI / 2) * side,
         y: player.y + Math.sin(back) * 18 + Math.sin(back + Math.PI / 2) * side,
-        vx: Math.cos(back) * rand(55, 130) + rand(-14, 14),
-        vy: Math.sin(back) * rand(55, 130) + rand(-14, 14),
-        life: rand(.22, .45), max: .45, size: rand(1.2, 3.2),
-        color: chance(.33) ? '#917cff' : '#65eaff', glow: 10,
+        vx: Math.cos(back) * rand(player.dashTimer > 0 ? 100 : 55, player.dashTimer > 0 ? 220 : 130) + rand(-14, 14),
+        vy: Math.sin(back) * rand(player.dashTimer > 0 ? 100 : 55, player.dashTimer > 0 ? 220 : 130) + rand(-14, 14),
+        life: rand(.22, .45), max: .45, size: rand(1.2, player.dashTimer > 0 ? 4.2 : 3.2),
+        color: chance(.33) ? '#917cff' : '#65eaff', glow: player.dashTimer > 0 ? 17 : 10,
       });
     }
 
