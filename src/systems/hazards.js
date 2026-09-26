@@ -99,6 +99,6 @@ export function updateHazards(
     }
 
     if (hazard.duration <= 0) state.hazards.splice(i, 1);
-    if (state.mode === 'gameover') return;
+    if (state.mode === 'dying' || state.mode === 'gameover') return;
   }
 }
