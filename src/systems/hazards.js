@@ -12,6 +12,7 @@ export function spawnRiftHazard(
     warmup = 1.08,
     duration = 2.35,
     damage = 15,
+    source = 'rift',
   } = {},
   onFirstHazard = null,
 ) {
@@ -27,6 +28,7 @@ export function spawnRiftHazard(
     duration,
     maxDuration: duration,
     damage,
+    source,
     hitTimer: 0,
     phase: rand(0, Math.PI * 2),
   });
@@ -91,7 +93,7 @@ export function updateHazards(
     const radius = hazard.r + player.r * 0.3;
 
     if (dx * dx + dy * dy <= radius * radius && hazard.hitTimer <= 0) {
-      const hit = takePlayerHit(hazard.damage);
+      const hit = takePlayerHit(hazard.damage, hazard.source || 'rift');
       if (hit) {
         hazard.hitTimer = 0.78;
         addRing(player.x, player.y, 30, '#ff789b', 2.2, 0.2);
