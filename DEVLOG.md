@@ -121,3 +121,18 @@
 - Extract Encounter Director and ground-hazard simulation into systems modules.
 - Add VFX quality levels and reduced-effects accessibility path.
 - Design the first 3–5 true Resonances before implementing them.
+
+
+### Alpha 0.5 structural follow-up
+
+- Encounter Director and Rift Zone simulation were moved out of `game.js` into dedicated systems modules.
+- The main runtime is now about 53 KB, down from roughly 76 KB before the modularization pass.
+- Current extracted layers now include:
+  - config: runtime/VFX budgets;
+  - core: math + state factories;
+  - data: biomes, enemies, encounters, upgrades;
+  - systems: upgrades, encounter director, hazards;
+  - render: celestial background;
+  - ui: DOM bindings.
+- Re-validated the changed runtime/system modules: parser checks pass.
+- Re-validated all 30 UI bindings against `index.html`: no missing IDs.
