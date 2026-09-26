@@ -3,8 +3,14 @@ export function equipWeapon(player, weapon) {
 
   player.weaponId = weapon.id;
   player.weaponName = weapon.name;
+  player.weaponBehavior = weapon.behavior;
+  player.weaponTags = [...(weapon.tags || [])];
 
   for (const [stat, value] of Object.entries(weapon.base)) {
     player[stat] = value;
   }
+}
+
+export function weaponHasTag(player, tag) {
+  return player.weaponTags?.includes(tag) ?? false;
 }
