@@ -1,12 +1,12 @@
 export const BIOMES = [
   {
-    id: 'starfall-corridor',
-    name: '星落回廊',
+    id: 'glass-expanse',
+    name: '玻璃荒原',
     skyA: '#070913',
-    skyB: '#0f1731',
+    skyB: '#101b36',
     skyC: '#121731',
     accent: '#7b6dff',
-    accent2: '#52e0ff',
+    accent2: '#73ecff',
     grid: 'rgba(137,155,255,.16)',
     hazeA: 'rgba(115,91,255,.22)',
     hazeB: 'rgba(82,224,255,.16)',
