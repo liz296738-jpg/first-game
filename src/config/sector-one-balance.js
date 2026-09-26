@@ -1,4 +1,5 @@
 export const SECTOR_ONE_TUNING = Object.freeze({
+  revision: 'GE-0.10-A',
   objective: Object.freeze({
     startTime: 20,
     radius: 104,
@@ -18,6 +19,8 @@ export const SECTOR_ONE_TUNING = Object.freeze({
     phaseOneDistance: 278,
     phaseTwoDistance: 238,
     phaseTwoSpeedMultiplier: 1.18,
+    initialScanDelay: 2.9,
+    initialRiftDelay: 5.6,
     phaseTransitionScanDelay: 1.4,
     phaseTransitionRiftDelay: 2.6,
 
