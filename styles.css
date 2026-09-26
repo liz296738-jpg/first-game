@@ -414,3 +414,14 @@ footer { min-height: 45px; color: #4c566f; font: 600 9px/1 ui-monospace, monospa
 .result-build span.weapon { color: #9cecff; border-color: rgba(108,230,255,.18); }
 .result-build span.resonance { color: #dbc5ff; border-color: rgba(185,139,255,.18); }
 .result-build span.anomaly { color: #ff9fba; border-color: rgba(255,112,151,.20); background: rgba(255,78,126,.035); }
+
+.mission-text {
+  display: block;
+  max-width: 260px;
+  margin: 7px auto 0;
+  color: #79dff3 !important;
+  font: 750 8px/1.35 ui-monospace, monospace !important;
+  letter-spacing: .08em !important;
+  text-wrap: balance;
+  opacity: .82;
+}
