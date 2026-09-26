@@ -4,6 +4,7 @@ export const ENEMY_CONFIGS = Object.freeze({
   brute: { r: 22, hp: 118, speed: 54, damage: 20, color: '#d45fff', xp: 16 },
   caster: { r: 13, hp: 58, speed: 68, damage: 12, color: '#7de2ff', xp: 12 },
   boss: { r: 34, hp: 660, speed: 50, damage: 24, color: '#f6f8ff', xp: 60 },
+  observatory: { r: 46, hp: 1280, speed: 42, damage: 27, color: '#f5e7ff', xp: 110 },
 });
 
 export const ENEMY_THREAT = Object.freeze({
@@ -12,4 +13,5 @@ export const ENEMY_THREAT = Object.freeze({
   caster: 2.4,
   brute: 3.2,
   boss: 12,
+  observatory: 18,
 });
