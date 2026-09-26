@@ -408,6 +408,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       player.hp = Math.min(player.maxHp, player.hp + 28);
       if (enemy.type === 'observatory') {
         state.sectorBossDefeated = true;
+        state.bossBeams = state.bossBeams.filter(beam => beam.bossId !== enemy.spawnId);
         state.cores += 2;
         addRing(enemy.x, enemy.y, 190, '#ffd693', 7, 1.05);
         addRing(enemy.x, enemy.y, 250, '#8ff4ff', 2.5, 1.18);
