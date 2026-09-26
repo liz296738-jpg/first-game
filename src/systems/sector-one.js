@@ -109,7 +109,7 @@ export function updateSectorOneObjectives({
         height,
         event.x,
         event.y,
-        { radius: 72, warmup: 0.7, duration: 3.1, damage: 18 },
+        { radius: 72, warmup: 0.7, duration: 3.1, damage: 18, source: 'falling-star-rift' },
       );
     }
   }
