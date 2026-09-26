@@ -61,6 +61,7 @@ export function requestDash({
 
   addRing(player.x, player.y, 30, accent, 2.4, 0.25);
   addShake(3.2);
+  if (state.telemetry) state.telemetry.dashCount += 1;
   return true;
 }
 
