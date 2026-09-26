@@ -23,6 +23,7 @@ export function getUIElements() {
     resultKills: document.getElementById('resultKills'),
     resultLevel: document.getElementById('resultLevel'),
     resultCores: document.getElementById('resultCores'),
+    resultBuild: document.getElementById('resultBuild'),
     bestText: document.getElementById('bestText'),
     toast: document.getElementById('toast'),
     stageText: document.getElementById('stageText'),
