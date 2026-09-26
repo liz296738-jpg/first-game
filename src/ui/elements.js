@@ -6,6 +6,7 @@ export function getUIElements() {
     gameOverScreen: document.getElementById('gameOverScreen'),
     startBtn: document.getElementById('startBtn'),
     pauseBtn: document.getElementById('pauseBtn'),
+    vfxBtn: document.getElementById('vfxBtn'),
     resumeBtn: document.getElementById('resumeBtn'),
     restartBtn: document.getElementById('restartBtn'),
     upgradeCards: document.getElementById('upgradeCards'),
