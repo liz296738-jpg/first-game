@@ -181,7 +181,67 @@ export function drawEnemy(ctx, enemy, state, player) {
   ctx.fillStyle = enemy.hit > 0 ? '#ffffff' : enemy.color;
   ctx.strokeStyle = enemy.hit > 0 ? '#ffffff' : enemy.color;
 
-  if (enemy.boss) {
+  if (enemy.type === 'observatory') {
+    const phaseTwo = enemy.bossPhase === 2;
+    ctx.rotate(state.time * (phaseTwo ? 0.34 : 0.21));
+
+    ctx.globalAlpha = 0.24;
+    ctx.strokeStyle = phaseTwo ? '#ffd693' : '#c7dcff';
+    ctx.lineWidth = phaseTwo ? 2.2 : 1.5;
+    for (let ring = 0; ring < (phaseTwo ? 2 : 4); ring++) {
+      ctx.save();
+      ctx.rotate(ring * 0.46);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, enemy.r * (0.9 + ring * 0.18), enemy.r * (0.28 + ring * 0.08), 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = phaseTwo ? 42 : 32;
+    ctx.fillStyle = enemy.hit > 0 ? '#ffffff' : (phaseTwo ? '#ffe7ae' : '#e9f7ff');
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      const rr = i % 2 ? enemy.r * 0.45 : enemy.r * 0.72;
+      if (i) ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#080913';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, enemy.r * 0.42, enemy.r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate(-state.time * (phaseTwo ? 0.78 : 0.46));
+    ctx.strokeStyle = phaseTwo ? '#ff9f9d' : '#8ff4ff';
+    ctx.lineWidth = phaseTwo ? 3 : 2;
+    ctx.shadowColor = phaseTwo ? '#ff856f' : '#8ff4ff';
+    ctx.shadowBlur = phaseTwo ? 22 : 16;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, enemy.r * 0.31, enemy.r * 0.12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = phaseTwo ? '#fff1c5' : '#f2ffff';
+    ctx.beginPath();
+    ctx.arc(enemy.r * 0.1, 0, phaseTwo ? 5.2 : 4.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (phaseTwo) {
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = '#ff789b';
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 4; i++) {
+        const a = i / 4 * Math.PI * 2 + state.time * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * enemy.r * 0.8, Math.sin(a) * enemy.r * 0.8);
+        ctx.lineTo(Math.cos(a) * enemy.r * 1.28, Math.sin(a) * enemy.r * 1.28);
+        ctx.stroke();
+      }
+    }
+  } else if (enemy.boss) {
     ctx.rotate(state.time * 0.18);
     ctx.globalAlpha = 0.17;
     ctx.lineWidth = 1.1;
@@ -324,6 +384,16 @@ export function drawEnemy(ctx, enemy, state, player) {
       width * Math.max(0, enemy.hp / enemy.maxHp),
       3,
     );
+
+    if (enemy.type === 'observatory') {
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = 'rgba(235,244,255,.78)';
+      ctx.font = '800 8px ui-monospace, monospace';
+      ctx.fillText(`THE OBSERVATORY · PHASE ${enemy.bossPhase || 1}`, enemy.x, enemy.y - enemy.r - 22);
+      ctx.restore();
+    }
   }
 }
 
