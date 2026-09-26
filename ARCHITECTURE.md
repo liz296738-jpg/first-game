@@ -25,6 +25,7 @@ The project deliberately uses native ES Modules and static assets so Render can 
     │   ├── math.js
     │   └── state.js
     ├── data/
+    │   ├── anomalies.js
     │   ├── biomes.js
     │   ├── enemies.js
     │   ├── encounters.js
@@ -36,6 +37,7 @@ The project deliberately uses native ES Modules and static assets so Render can 
     │   ├── entities.js
     │   └── projectiles.js
     ├── systems/
+    │   ├── anomalies.js
     │   ├── death.js
     │   ├── director.js
     │   ├── hazards.js
