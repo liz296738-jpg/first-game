@@ -53,6 +53,8 @@ export function createPlayerState(width, height) {
     xpNeed: 24,
     weaponId: null,
     weaponName: '',
+    weaponBehavior: null,
+    weaponTags: [],
     damage: 1,
     fireRate: 1,
     fireTimer: 0,
