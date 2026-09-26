@@ -27,8 +27,8 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   const backgroundScale = quality?.backgroundScale ?? 1;
   const nebulaCount = Math.max(2, Math.ceil(state.nebulae.length * backgroundScale));
   for (const n of state.nebulae.slice(0, nebulaCount)) {
-    const driftX = Math.sin(state.time * .055 + n.phase) * 24 - px * 28 * n.depth;
-    const driftY = Math.cos(state.time * .043 + n.phase) * 18 - py * 20 * n.depth;
+    const driftX = Math.sin(time * .055 + n.phase) * 24 - px * 28 * n.depth;
+    const driftY = Math.cos(time * .043 + n.phase) * 18 - py * 20 * n.depth;
     const color = n.hue === 0 ? colors.hazeA : n.hue === 1 ? colors.hazeB : 'rgba(210,220,255,.08)';
     const x = n.x + driftX, y = n.y + driftY;
     const grad = ctx.createRadialGradient(x, y, 0, x, y, n.r);
@@ -56,7 +56,7 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   // Far broken orbit ring.
   ctx.save();
   ctx.translate(W * .82 - px * 26, H * .27 - py * 18);
-  ctx.rotate(-.47 + Math.sin(state.time * .015) * .018);
+  ctx.rotate(-.47 + Math.sin(time * .015) * .018);
   ctx.strokeStyle = alphaColor(colors.hazeB, .09);
   ctx.lineWidth = 22;
   ctx.beginPath(); ctx.ellipse(0, 0, 335, 112, 0, .17, 4.85); ctx.stroke();
@@ -90,11 +90,11 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
 
   const starCount = Math.max(72, Math.ceil(state.stars.length * backgroundScale));
   for (const star of state.stars.slice(0, starCount)) {
-    let x = star.x - px * 72 * star.z - state.time * (.5 + star.z * 1.4);
-    let y = star.y - py * 50 * star.z + Math.sin(state.time * .06 + star.tw) * 1.8 * star.z;
+    let x = star.x - px * 72 * star.z - time * (.5 + star.z * 1.4);
+    let y = star.y - py * 50 * star.z + Math.sin(time * .06 + star.tw) * 1.8 * star.z;
     x = ((x % W) + W) % W;
     y = ((y % H) + H) % H;
-    ctx.globalAlpha = star.a * (.72 + Math.sin(state.time * (1.2 + star.z) + star.tw) * .28);
+    ctx.globalAlpha = star.a * (.72 + Math.sin(time * (1.2 + star.z) + star.tw) * .28);
     ctx.fillStyle = star.tint === 1 ? '#bcf8ff' : star.tint === 2 ? '#d6ccff' : '#f1f5ff';
     if (star.z > .82) { ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 5; }
     const ss = star.s * (.68 + star.z * .55);
@@ -109,7 +109,7 @@ function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = .7;
   const grid = 104;
-  const ox = (state.time * 2.2) % grid;
+  const ox = (time * 2.2) % grid;
   for (let x = -grid + ox; x < W + grid; x += grid) {
     ctx.beginPath(); ctx.moveTo(x, H*.68); ctx.lineTo(x + 180, H); ctx.stroke();
   }
@@ -140,7 +140,7 @@ function drawGlassExpanseSignature(ctx, W, H, state, player, colors, quality) {
   for (let i = 0; i < shards.length; i++) {
     const shard = shards[i];
     ctx.save();
-    ctx.translate(shard.x, shard.y + Math.sin(state.time * 0.035 + i) * 4);
+    ctx.translate(shard.x, shard.y + Math.sin(time * 0.035 + i) * 4);
     ctx.rotate(shard.r);
     ctx.beginPath();
     ctx.moveTo(0, -shard.h * 0.52);
@@ -180,7 +180,7 @@ function drawBossPressure(ctx, W, H, state, colors, quality) {
   if (!bossActive) return;
 
   const strength = quality?.backgroundScale ?? 1;
-  const pulse = 0.72 + Math.sin(state.time * 1.7) * 0.08;
+  const pulse = 0.72 + Math.sin(time * 1.7) * 0.08;
 
   ctx.save();
   const veil = ctx.createRadialGradient(W * 0.5, H * 0.48, H * 0.12, W * 0.5, H * 0.48, H * 0.82);
@@ -191,7 +191,7 @@ function drawBossPressure(ctx, W, H, state, colors, quality) {
   ctx.fillRect(0, 0, W, H);
 
   ctx.translate(W * 0.77, H * 0.19);
-  ctx.rotate(state.time * 0.018);
+  ctx.rotate(time * 0.018);
   ctx.globalAlpha = 0.16 * strength * pulse;
   ctx.strokeStyle = '#ffd995';
   ctx.shadowColor = '#ffb36d';
@@ -214,7 +214,7 @@ function drawProps(ctx, W, H, state, player, colors, quality) {
   const propScale = quality?.backgroundScale ?? 1;
   const propCount = Math.max(4, Math.ceil(state.props.length * propScale));
   for (const p of state.props.slice(0, propCount)) {
-    const offset = Math.sin(state.time * .24 + p.sway) * 3;
+    const offset = Math.sin(time * .24 + p.sway) * 3;
     const x = p.x - px * 24 * p.depth;
     ctx.globalAlpha = .25 + p.depth * .22;
     ctx.fillStyle = colors.silhouette;
@@ -250,7 +250,7 @@ function drawProps(ctx, W, H, state, player, colors, quality) {
   ctx.fillRect(0, H * .55, W, H * .45);
 }
 
-export function drawBackground(ctx, W, H, state, player, colors, quality) {
+export function drawBackground(ctx, W, H, state, player, colors, quality, time = state.time) {
   drawBackdropLayer(ctx, W, H, state, player, colors, quality);
   drawGlassExpanseSignature(ctx, W, H, state, player, colors, quality);
   drawProps(ctx, W, H, state, player, colors, quality);
