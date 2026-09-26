@@ -82,6 +82,7 @@ export function createPlayerState(width, height) {
     primaryVolleyCounter: 0,
     phaseGuardTimer: 0,
     phaseGuardCooldown: 0,
+    eventHorizonTimer: 5.8,
     angle: -Math.PI / 2,
     thrust: 0,
     vx: 0,
