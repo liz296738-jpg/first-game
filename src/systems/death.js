@@ -52,5 +52,12 @@ export function updatePlayerDeath(state, dt, finish) {
 
   state.deathFragments = state.deathFragments.filter(fragment => fragment.life > 0);
 
+  for (let i = state.rings.length - 1; i >= 0; i--) {
+    const ring = state.rings[i];
+    ring.radius += 135 * dt;
+    ring.life -= dt;
+    if (ring.life <= 0) state.rings.splice(i, 1);
+  }
+
   if (state.deathTimer <= 0) finish();
 }
