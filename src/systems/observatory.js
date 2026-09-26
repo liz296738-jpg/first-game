@@ -33,8 +33,8 @@ export function initializeObservatory(enemy) {
   enemy.bossTitle = '观测者';
   enemy.bossPhase = 1;
   enemy.phaseTransitioned = false;
-  enemy.scanTimer = 2.9;
-  enemy.riftTimer = 5.6;
+  enemy.scanTimer = SECTOR_ONE_TUNING.boss.initialScanDelay;
+  enemy.riftTimer = SECTOR_ONE_TUNING.boss.initialRiftDelay;
   enemy.orbitDirection = Math.random() < 0.5 ? -1 : 1;
 }
 
