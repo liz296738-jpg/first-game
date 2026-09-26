@@ -10,6 +10,7 @@ export function getUIElements() {
     vfxBtn: document.getElementById('vfxBtn'),
     resumeBtn: document.getElementById('resumeBtn'),
     restartBtn: document.getElementById('restartBtn'),
+    copyTelemetryBtn: document.getElementById('copyTelemetryBtn'),
     upgradeCards: document.getElementById('upgradeCards'),
     hud: document.getElementById('hud'),
     levelText: document.getElementById('levelText'),
