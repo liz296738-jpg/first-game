@@ -6,6 +6,7 @@ import { getUIElements } from './src/ui/elements.js';
 import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
 import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawPlayerDeath as renderPlayerDeath, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
+import { drawProjectiles as renderProjectiles } from './src/render/projectiles.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
@@ -816,24 +817,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
 
     for (const g of state.gems) renderGem(ctx, g, state.time);
 
-    for (const p of state.projectiles) {
-      ctx.save();
-      const speed=Math.hypot(p.vx,p.vy)||1, nx=p.vx/speed, ny=p.vy/speed;
-      const trail=p.crit?27:19;
-      const pg=ctx.createLinearGradient(p.x-nx*trail,p.y-ny*trail,p.x,p.y);
-      pg.addColorStop(0,'rgba(100,230,255,0)');pg.addColorStop(1,p.crit?'#ffe89d':p.color);
-      ctx.strokeStyle=pg;ctx.lineWidth=p.crit?3.2:2.2;ctx.shadowColor=p.crit?'#ffd36c':p.color;ctx.shadowBlur=p.crit?18:12;
-      ctx.beginPath();ctx.moveTo(p.x-nx*trail,p.y-ny*trail);ctx.lineTo(p.x,p.y);ctx.stroke();
-      ctx.fillStyle=p.crit?'#fff6cf':'#f2feff';ctx.beginPath();ctx.arc(p.x,p.y,p.crit?3.4:2.6,0,Math.PI*2);ctx.fill();ctx.restore();
-    }
-    for (const p of state.enemyProjectiles) {
-      ctx.save();
-      const speed=Math.hypot(p.vx,p.vy)||1,nx=p.vx/speed,ny=p.vy/speed;
-      const trail=p.fromBoss?25:16;
-      ctx.strokeStyle=p.color;ctx.globalAlpha=.6;ctx.lineWidth=p.fromBoss?3:2;ctx.shadowColor=p.color;ctx.shadowBlur=p.fromBoss?17:11;
-      ctx.beginPath();ctx.moveTo(p.x-nx*trail,p.y-ny*trail);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.globalAlpha=1;
-      ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*.72,0,Math.PI*2);ctx.fill();ctx.restore();
-    }
+    renderProjectiles(ctx, state);
 
     renderAfterimages(ctx, state, biome());
     for (const e of state.enemies) renderEnemy(ctx, e, state, player);
