@@ -263,3 +263,12 @@
 - Treat Stage 4 as a playtest target rather than immediately adding more content.
 - Tune relay hold duration, Falling Star timing, elite pressure and Observatory scan cadence from actual runs.
 - After the vertical slice is stable, begin Stage 5 with a third genuinely different weapon and expanded build ecology.
+
+
+## 2026-09-26 · Render playability pass
+
+- Deployed the project as a Render Static Site at `https://void-descent.onrender.com` with auto-deploy from `main`.
+- Fixed the menu ambience appearing frozen by separating the visual background clock from the gameplay run timer.
+- Kept run timing deterministic: menu animation no longer advances combat time, wave timing, encounter timing, or telemetry.
+- Improved embedded-browser keyboard reliability by making the canvas focusable and focusing it when a run starts.
+- Confirmed the current architecture is a pure browser app; Render Static Site is the intended deployment target, so a Web Service is not required for gameplay.
