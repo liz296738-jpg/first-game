@@ -7,9 +7,9 @@ import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
 import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawPlayerDeath as renderPlayerDeath, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { drawProjectiles as renderProjectiles } from './src/render/projectiles.js';
-import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
+import { AFFINITIES } from './src/data/upgrades.js';
 import { STARTER_WEAPON_ID, getWeapon } from './src/data/weapons.js';
-import { applyUpgradeEffects } from './src/systems/upgrades.js';
+import { buildUpgradePool, applyUpgradeEffects } from './src/systems/upgrades.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
@@ -247,12 +247,16 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     return best;
   }
 
-  function fireAt(target, source = player, damageScale = 1, color = '#c7f8ff', speedScale = 1, size = 4, pierce = null) {
+  function fireAt(target, source = player, damageScale = 1, color = null, speedScale = 1, size = null, pierce = null) {
+    const weapon = source === player ? getWeapon(player.weaponId) : null;
+    const projectileColor = color ?? weapon?.projectile?.color ?? '#c7f8ff';
+    const projectileSize = size ?? weapon?.projectile?.size ?? 4;
+    const projectileLife = weapon?.projectile?.lifetime ?? 1.8;
     const base = Math.atan2(target.y - source.y, target.x - source.x);
     const count = source === player ? player.projectileCount : Math.min(1 + Math.floor(player.droneLevel / 2), 2);
     const localSpread = source === player ? player.spread : 0.08;
 
-    const emitProjectile = (angle, localDamageScale = damageScale, localColor = color, allowCrit = true) => {
+    const emitProjectile = (angle, localDamageScale = damageScale, localColor = projectileColor, allowCrit = true) => {
       const crit = source === player && allowCrit && Math.random() < player.crit;
       const damage = (source === player ? player.damage : player.damage * 0.55) * localDamageScale * (crit ? 2 : 1);
       state.projectiles.push({
@@ -260,9 +264,9 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
         y: source.y + Math.sin(angle) * (source.r ? source.r + 7 : 18),
         vx: Math.cos(angle) * player.bulletSpeed * speedScale,
         vy: Math.sin(angle) * player.bulletSpeed * speedScale,
-        r: crit ? size + 1.2 : size,
+        r: crit ? projectileSize + 1.2 : projectileSize,
         damage,
-        life: 1.8,
+        life: projectileLife,
         pierce: pierce ?? (source === player ? player.pierce : 0),
         crit,
         color: localColor,
