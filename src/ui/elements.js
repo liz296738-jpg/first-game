@@ -25,6 +25,7 @@ export function getUIElements() {
     resultLevel: document.getElementById('resultLevel'),
     resultCores: document.getElementById('resultCores'),
     resultBuild: document.getElementById('resultBuild'),
+    resultTelemetry: document.getElementById('resultTelemetry'),
     bestText: document.getElementById('bestText'),
     toast: document.getElementById('toast'),
     stageText: document.getElementById('stageText'),
