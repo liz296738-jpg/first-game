@@ -424,26 +424,61 @@ export function drawPlayer(ctx, state, player, colors, droneSlots) {
   ctx.restore();
 
   if (player.orbitCount > 0) {
+    const primaryHalo = player.weaponBehavior === 'orbit-primary';
+
+    if (primaryHalo) {
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.rotate(state.time * 0.16);
+      ctx.strokeStyle = 'rgba(199,220,255,.20)';
+      ctx.shadowColor = '#a8cfff';
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 1.1;
+      ctx.setLineDash([12, 10]);
+      ctx.beginPath();
+      ctx.arc(0, 0, player.orbitRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(0, 0, player.orbitRadius * 0.72, 0.24, Math.PI * 1.42);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     for (let i = 0; i < player.orbitCount; i++) {
       const a = state.time * player.orbitSpeed + i * (Math.PI * 2 / player.orbitCount);
       const ox = player.x + Math.cos(a) * player.orbitRadius;
       const oy = player.y + Math.sin(a) * player.orbitRadius;
+      const blade = primaryHalo ? 1.2 : 1;
+
       ctx.save();
       ctx.translate(ox, oy);
-      ctx.rotate(a * 2);
-      ctx.shadowColor = '#cabdff';
-      ctx.shadowBlur = 13;
-      const orbital = ctx.createLinearGradient(-8, -8, 8, 8);
-      orbital.addColorStop(0, '#efe9ff');
-      orbital.addColorStop(1, '#8f7cff');
+      ctx.rotate(a * 2 + (primaryHalo ? Math.PI * 0.25 : 0));
+      ctx.shadowColor = primaryHalo ? '#b7e7ff' : '#cabdff';
+      ctx.shadowBlur = primaryHalo ? 18 : 13;
+      const orbital = ctx.createLinearGradient(-9 * blade, -9 * blade, 9 * blade, 9 * blade);
+      orbital.addColorStop(0, primaryHalo ? '#ffffff' : '#efe9ff');
+      orbital.addColorStop(0.48, primaryHalo ? '#c7dcff' : '#c8bdff');
+      orbital.addColorStop(1, primaryHalo ? '#79dfff' : '#8f7cff');
       ctx.fillStyle = orbital;
       ctx.beginPath();
-      ctx.moveTo(0, -8);
-      ctx.lineTo(7, 0);
-      ctx.lineTo(0, 8);
-      ctx.lineTo(-4, 0);
+      ctx.moveTo(0, -8 * blade);
+      ctx.lineTo(7 * blade, 0);
+      ctx.lineTo(0, 8 * blade);
+      ctx.lineTo(-4 * blade, 0);
       ctx.closePath();
       ctx.fill();
+
+      if (primaryHalo) {
+        ctx.globalAlpha = 0.42;
+        ctx.strokeStyle = '#e7f6ff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-11, 0);
+        ctx.lineTo(11, 0);
+        ctx.stroke();
+      }
       ctx.restore();
     }
   }
