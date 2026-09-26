@@ -1,6 +1,6 @@
 import { alphaColor } from '../core/math.js';
 
-function drawBackdropLayer(ctx, W, H, state, player, colors) {
+function drawBackdropLayer(ctx, W, H, state, player, colors, quality) {
   const px = player.x / W - .5;
   const py = player.y / H - .5;
 
@@ -24,7 +24,9 @@ function drawBackdropLayer(ctx, W, H, state, player, colors) {
   ctx.fillRect(-W * .75, -72, W * 1.5, 144);
   ctx.restore();
 
-  for (const n of state.nebulae) {
+  const backgroundScale = quality?.backgroundScale ?? 1;
+  const nebulaCount = Math.max(2, Math.ceil(state.nebulae.length * backgroundScale));
+  for (const n of state.nebulae.slice(0, nebulaCount)) {
     const driftX = Math.sin(state.time * .055 + n.phase) * 24 - px * 28 * n.depth;
     const driftY = Math.cos(state.time * .043 + n.phase) * 18 - py * 20 * n.depth;
     const color = n.hue === 0 ? colors.hazeA : n.hue === 1 ? colors.hazeB : 'rgba(210,220,255,.08)';
@@ -39,7 +41,8 @@ function drawBackdropLayer(ctx, W, H, state, player, colors) {
 
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  for (const d of state.dust) {
+  const dustCount = Math.max(10, Math.ceil(state.dust.length * backgroundScale));
+  for (const d of state.dust.slice(0, dustCount)) {
     const x = ((d.x - px * 90 * d.z) % W + W) % W;
     const y = ((d.y - py * 64 * d.z) % H + H) % H;
     const dg = ctx.createRadialGradient(x, y, 0, x, y, d.r);
@@ -85,7 +88,8 @@ function drawBackdropLayer(ctx, W, H, state, player, colors) {
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(planetX, planetY, pr*.72, 3.58, 5.52); ctx.stroke();
 
-  for (const star of state.stars) {
+  const starCount = Math.max(72, Math.ceil(state.stars.length * backgroundScale));
+  for (const star of state.stars.slice(0, starCount)) {
     let x = star.x - px * 72 * star.z - state.time * (.5 + star.z * 1.4);
     let y = star.y - py * 50 * star.z + Math.sin(state.time * .06 + star.tw) * 1.8 * star.z;
     x = ((x % W) + W) % W;
@@ -112,10 +116,12 @@ function drawBackdropLayer(ctx, W, H, state, player, colors) {
   ctx.restore();
 }
 
-function drawProps(ctx, W, H, state, player, colors) {
+function drawProps(ctx, W, H, state, player, colors, quality) {
   const px = player.x / W - .5;
   ctx.save();
-  for (const p of state.props) {
+  const propScale = quality?.backgroundScale ?? 1;
+  const propCount = Math.max(4, Math.ceil(state.props.length * propScale));
+  for (const p of state.props.slice(0, propCount)) {
     const offset = Math.sin(state.time * .24 + p.sway) * 3;
     const x = p.x - px * 24 * p.depth;
     ctx.globalAlpha = .25 + p.depth * .22;
@@ -152,9 +158,9 @@ function drawProps(ctx, W, H, state, player, colors) {
   ctx.fillRect(0, H * .55, W, H * .45);
 }
 
-export function drawBackground(ctx, W, H, state, player, colors) {
-  drawBackdropLayer(ctx, W, H, state, player, colors);
-  drawProps(ctx, W, H, state, player, colors);
+export function drawBackground(ctx, W, H, state, player, colors, quality) {
+  drawBackdropLayer(ctx, W, H, state, player, colors, quality);
+  drawProps(ctx, W, H, state, player, colors, quality);
 
   const focus = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, 260);
   focus.addColorStop(0, alphaColor(colors.hazeA, .08));
