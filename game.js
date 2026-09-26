@@ -5,6 +5,7 @@ import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src
 import { getUIElements } from './src/ui/elements.js';
 import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
+import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
@@ -825,315 +826,6 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     enforceBudgets();
   }
 
-  function drawGem(g) {
-    ctx.save();
-    ctx.translate(g.x, g.y);
-    ctx.rotate(state.time * 2.2 + g.x);
-    ctx.fillStyle = '#5ee9ff';
-    ctx.shadowColor = '#5ee9ff';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.moveTo(0, -g.r); ctx.lineTo(g.r * .72, 0); ctx.lineTo(0, g.r); ctx.lineTo(-g.r * .72, 0); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawHazards() {
-    for (const h of state.hazards) {
-      const warming = h.warmup > 0;
-      const progress = warming ? 1 - h.warmup / h.maxWarmup : 1 - h.duration / h.maxDuration;
-      const pulse = .82 + Math.sin(state.time * 7 + h.phase) * .18;
-      ctx.save();
-      ctx.translate(h.x, h.y);
-
-      if (warming) {
-        ctx.globalAlpha = .28 + progress * .38;
-        ctx.strokeStyle = '#ff789b';
-        ctx.shadowColor = '#ff789b';
-        ctx.shadowBlur = 13;
-        ctx.lineWidth = 1.5 + progress;
-        ctx.setLineDash([10, 8]);
-        ctx.beginPath(); ctx.arc(0, 0, h.r * (.9 + progress * .1), 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.globalAlpha *= .55;
-        ctx.beginPath(); ctx.arc(0, 0, h.r * .45, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
-      } else {
-        const fade = Math.min(1, h.duration * 2.2);
-        const grad = ctx.createRadialGradient(0, 0, h.r * .12, 0, 0, h.r);
-        grad.addColorStop(0, 'rgba(255,105,150,.08)');
-        grad.addColorStop(.68, 'rgba(255,82,130,.11)');
-        grad.addColorStop(1, 'rgba(255,65,105,0)');
-        ctx.globalAlpha = fade * pulse;
-        ctx.fillStyle = grad;
-        ctx.fillRect(-h.r, -h.r, h.r * 2, h.r * 2);
-        ctx.strokeStyle = 'rgba(255,121,155,.78)';
-        ctx.shadowColor = '#ff5f91';
-        ctx.shadowBlur = 15;
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, h.r, 0, Math.PI * 2); ctx.stroke();
-        ctx.rotate(state.time * .35 + h.phase);
-        ctx.globalAlpha *= .48;
-        for (let i = 0; i < 3; i++) {
-          ctx.rotate(Math.PI * 2 / 3);
-          ctx.beginPath(); ctx.arc(h.r * .18, 0, h.r * .62, -.55, .72); ctx.stroke();
-        }
-      }
-      ctx.restore();
-    }
-  }
-
-  function drawSpawnSignals() {
-    for (const signal of state.spawnSignals) {
-      if (signal.delay > 0) continue;
-      const x = clamp(signal.x, 22, W - 22);
-      const y = clamp(signal.y, 22, H - 22);
-      const progress = 1 - signal.life / signal.max;
-      const pulse = .72 + Math.sin(progress * Math.PI * 7) * .18;
-      const color = signal.boss ? '#ffd98f' : signal.elite ? '#6cecff' : '#ff789b';
-      ctx.save();
-      ctx.globalAlpha = (.28 + progress * .58) * pulse;
-      ctx.strokeStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = signal.boss ? 22 : 13;
-      ctx.lineWidth = signal.boss ? 2.2 : 1.4;
-      const radius = (signal.boss ? 34 : signal.elite ? 25 : 17) * (1.45 - progress * .45);
-      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha *= .65;
-      ctx.beginPath(); ctx.arc(x, y, radius * .58, 0, Math.PI * 2); ctx.stroke();
-      const inward = Math.atan2(H / 2 - y, W / 2 - x);
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(inward) * (signal.boss ? 72 : 42), y + Math.sin(inward) * (signal.boss ? 72 : 42)); ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  function drawAfterimages() {
-    for (const afterimage of state.afterimages) {
-      const life = Math.max(0, afterimage.life / afterimage.max);
-      ctx.save();
-      ctx.globalAlpha = life * .25;
-      ctx.translate(afterimage.x, afterimage.y);
-      ctx.rotate(afterimage.angle);
-      ctx.fillStyle = biome().accent2;
-      ctx.shadowColor = biome().accent2;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.moveTo(24,0);ctx.lineTo(2,8);ctx.lineTo(-8,17);ctx.lineTo(-13,7);ctx.lineTo(-20,0);ctx.lineTo(-13,-7);ctx.lineTo(-8,-17);ctx.lineTo(2,-8);ctx.closePath();ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  function drawAttackTelegraph(e) {
-    if (!(e.attackCharge > 0) || !(e.attackChargeMax > 0)) return;
-    const progress = 1 - e.attackCharge / e.attackChargeMax;
-    const color = e.boss ? '#ffd98f' : '#7be9ff';
-    const length = e.boss ? 330 : 180;
-    ctx.save();
-    ctx.globalAlpha = .22 + progress * .5;
-    ctx.strokeStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
-    ctx.lineWidth = 1.1 + progress * 1.8;
-    ctx.setLineDash([9, 8]);
-    ctx.beginPath();
-    ctx.moveTo(e.x + Math.cos(e.attackAngle) * (e.r + 8), e.y + Math.sin(e.attackAngle) * (e.r + 8));
-    ctx.lineTo(e.x + Math.cos(e.attackAngle) * length, e.y + Math.sin(e.attackAngle) * length);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 8 + progress * 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawEnemy(e) {
-    ctx.save();
-    ctx.translate(e.x, e.y);
-    const scale = 1 + Math.sin(state.time * 4 + e.phase) * .035;
-    ctx.scale(scale, scale);
-    const aim = Math.atan2(player.y - e.y, player.x - e.x);
-    ctx.rotate(e.boss || e.elite ? 0 : aim);
-    ctx.shadowColor = e.color;
-    ctx.shadowBlur = e.boss ? 32 : e.elite ? 25 : (e.hit > 0 ? 18 : 10);
-    ctx.fillStyle = e.hit > 0 ? '#ffffff' : e.color;
-    ctx.strokeStyle = e.hit > 0 ? '#ffffff' : e.color;
-
-    if (e.boss) {
-      ctx.rotate(state.time * .18);
-      ctx.globalAlpha = .17;
-      ctx.lineWidth = 1.1;
-      for (let ring = 0; ring < 3; ring++) {
-        ctx.beginPath(); ctx.arc(0,0,e.r*(.82+ring*.28),0,Math.PI*2); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      for (let i=0;i<14;i++) {
-        const a=i/14*Math.PI*2;
-        const rr=i%2?e.r*.54:e.r;
-        i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
-      }
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#130e18'; ctx.beginPath(); ctx.arc(0,0,e.r*.48,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#ffe3a5'; ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.arc(0,0,e.r*.26,0,Math.PI*2); ctx.stroke();
-      ctx.rotate(-state.time*.43);
-      for (let i=0;i<3;i++) {
-        const a=i/3*Math.PI*2;
-        ctx.fillStyle='#fff0bf'; ctx.beginPath(); ctx.arc(Math.cos(a)*e.r*.67,Math.sin(a)*e.r*.67,2.2,0,Math.PI*2); ctx.fill();
-      }
-    } else if (e.elite) {
-      ctx.rotate(state.time * .27);
-      ctx.globalAlpha=.2; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.arc(0,0,e.r*1.22,0,Math.PI*2); ctx.stroke();
-      ctx.globalAlpha=1;
-      ctx.beginPath();
-      for(let i=0;i<10;i++){
-        const a=i/10*Math.PI*2, rr=i%2?e.r*.58:e.r;
-        i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
-      }
-      ctx.closePath();ctx.fill();
-      ctx.fillStyle='#08131c';ctx.beginPath();ctx.arc(0,0,e.r*.4,0,Math.PI*2);ctx.fill();
-    } else if (e.type === 'swift') {
-      ctx.beginPath(); ctx.moveTo(e.r*1.3,0); ctx.lineTo(-e.r*.82,e.r*.72); ctx.lineTo(-e.r*.42,0); ctx.lineTo(-e.r*.82,-e.r*.72); ctx.closePath(); ctx.fill();
-      ctx.fillStyle='#140d0b'; ctx.beginPath(); ctx.moveTo(e.r*.38,0);ctx.lineTo(-e.r*.45,e.r*.25);ctx.lineTo(-e.r*.45,-e.r*.25);ctx.closePath();ctx.fill();
-    } else if (e.type === 'brute') {
-      ctx.lineWidth=e.r*.3;
-      ctx.beginPath();
-      for(let i=0;i<6;i++){
-        const a=i/6*Math.PI*2;
-        i?ctx.lineTo(Math.cos(a)*e.r*.75,Math.sin(a)*e.r*.75):ctx.moveTo(Math.cos(a)*e.r*.75,Math.sin(a)*e.r*.75);
-      }
-      ctx.closePath();ctx.stroke();
-      ctx.fillStyle='#100a18';ctx.beginPath();ctx.arc(0,0,e.r*.34,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=e.hit>0?'#fff':'#d69aff';ctx.beginPath();ctx.arc(e.r*.05,0,e.r*.11,0,Math.PI*2);ctx.fill();
-    } else if (e.type === 'caster') {
-      ctx.rotate(-aim + state.time*.35);
-      ctx.lineWidth=3.5;
-      ctx.beginPath(); ctx.arc(0,0,e.r*.8,.3,Math.PI*1.45); ctx.stroke();
-      ctx.rotate(Math.PI);
-      ctx.beginPath(); ctx.arc(0,0,e.r*1.05,.2,1.35); ctx.stroke();
-      ctx.fillStyle=e.hit>0?'#fff':e.color;ctx.beginPath();ctx.arc(0,0,e.r*.55,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#07121a';ctx.beginPath();ctx.arc(0,0,e.r*.25,0,Math.PI*2);ctx.fill();
-    } else {
-      ctx.beginPath();
-      for(let i=0;i<6;i++){
-        const a=i/6*Math.PI*2, rr=i%2?e.r*.7:e.r;
-        i?ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);
-      }
-      ctx.closePath();ctx.fill();
-      ctx.fillStyle='#120a12';ctx.beginPath();ctx.arc(0,0,e.r*.39,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,225,235,.7)';ctx.fillRect(e.r*.08,-1,e.r*.34,2);
-    }
-    ctx.restore();
-    drawAttackTelegraph(e);
-
-    if (e.elite || e.hp < e.maxHp || e.boss) {
-      const w = e.r * (e.boss ? 3.1 : 2.35);
-      ctx.fillStyle = 'rgba(1,3,10,.58)';
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 16, w, 3);
-      const hg=ctx.createLinearGradient(e.x-w/2,0,e.x+w/2,0);
-      hg.addColorStop(0,e.boss?'#ffd27c':e.elite?'#64eaff':'#ff6f91');
-      hg.addColorStop(1,e.boss?'#fff2bd':e.elite?'#9d85ff':'#ffab8c');
-      ctx.fillStyle=hg;
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 16, w * Math.max(0, e.hp / e.maxHp), 3);
-    }
-  }
-
-  function drawPlayer() {
-    const colors = biome();
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.rotate(player.angle);
-    if (player.invuln > 0 && Math.floor(player.invuln * 18) % 2 === 0) ctx.globalAlpha = .4;
-
-    if (player.thrust > .04) {
-      const flame = 10 + player.thrust * 19 + Math.sin(state.time * 28) * 2 * player.thrust;
-      const eg = ctx.createLinearGradient(-13, 0, -18-flame, 0);
-      eg.addColorStop(0, 'rgba(235,254,255,.95)');
-      eg.addColorStop(.3, alphaColor(colors.hazeB,.85));
-      eg.addColorStop(1, alphaColor(colors.hazeA,0));
-      ctx.fillStyle=eg;ctx.shadowColor=colors.accent2;ctx.shadowBlur=17;
-      ctx.beginPath();ctx.moveTo(-13,-5);ctx.lineTo(-18-flame,0);ctx.lineTo(-13,5);ctx.closePath();ctx.fill();
-    }
-
-    ctx.shadowColor = player.shield > 0 ? '#dcfbff' : colors.accent;
-    ctx.shadowBlur = player.shield > 0 ? 36 : 26;
-    const hull = ctx.createLinearGradient(-18,-14,24,12);
-    hull.addColorStop(0, colors.accent);
-    hull.addColorStop(.52, '#b4adff');
-    hull.addColorStop(1, colors.accent2);
-    ctx.fillStyle=hull;
-    ctx.beginPath();
-    ctx.moveTo(24,0);ctx.lineTo(2,8);ctx.lineTo(-8,17);ctx.lineTo(-13,7);ctx.lineTo(-20,0);ctx.lineTo(-13,-7);ctx.lineTo(-8,-17);ctx.lineTo(2,-8);ctx.closePath();ctx.fill();
-    ctx.shadowBlur=0;
-    ctx.fillStyle='#070b17';ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-4,7);ctx.lineTo(-11,0);ctx.lineTo(-4,-7);ctx.closePath();ctx.fill();
-    ctx.shadowColor='#dfffff';ctx.shadowBlur=14;ctx.fillStyle='#efffff';ctx.beginPath();ctx.arc(2,0,3.2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    ctx.strokeStyle='rgba(230,250,255,.65)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(8,-5);ctx.lineTo(-9,-13);ctx.moveTo(8,5);ctx.lineTo(-9,13);ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.rotate(state.time*.43);
-    ctx.strokeStyle=alphaColor(colors.hazeB,.35);ctx.lineWidth=1.1;ctx.shadowColor=colors.accent2;ctx.shadowBlur=9;
-    ctx.beginPath();ctx.arc(0,0,player.r+12,.18,1.9);ctx.stroke();
-    ctx.rotate(Math.PI);ctx.strokeStyle=alphaColor(colors.hazeA,.28);ctx.beginPath();ctx.arc(0,0,player.r+15,.25,1.45);ctx.stroke();
-    if (player.shield > 0) {
-      ctx.rotate(-state.time*.7);ctx.strokeStyle='rgba(220,251,255,.72)';ctx.lineWidth=1.5;ctx.shadowColor='#dffcff';ctx.shadowBlur=14;
-      ctx.beginPath();ctx.arc(0,0,player.r+20,.18,Math.PI*1.62);ctx.stroke();
-    }
-    ctx.restore();
-
-    if (player.orbitCount > 0) {
-      for (let i = 0; i < player.orbitCount; i++) {
-        const a = state.time * player.orbitSpeed + i * (Math.PI * 2 / player.orbitCount);
-        const ox = player.x + Math.cos(a) * player.orbitRadius;
-        const oy = player.y + Math.sin(a) * player.orbitRadius;
-        ctx.save();ctx.translate(ox,oy);ctx.rotate(a*2);ctx.shadowColor='#cabdff';ctx.shadowBlur=13;
-        const og=ctx.createLinearGradient(-8,-8,8,8);og.addColorStop(0,'#efe9ff');og.addColorStop(1,'#8f7cff');ctx.fillStyle=og;
-        ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(7,0);ctx.lineTo(0,8);ctx.lineTo(-4,0);ctx.closePath();ctx.fill();ctx.restore();
-      }
-    }
-
-    if (player.droneLevel > 0) {
-      for (const d of getDroneSlots()) {
-        ctx.save();ctx.translate(d.x,d.y);ctx.rotate(-state.time*.9);ctx.shadowColor='#8dffcf';ctx.shadowBlur=12;
-        ctx.fillStyle='#a7ffdc';ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(0,6);ctx.lineTo(-7,0);ctx.lineTo(0,-6);ctx.closePath();ctx.fill();
-        ctx.fillStyle='#073027';ctx.beginPath();ctx.arc(1,0,2.5,0,Math.PI*2);ctx.fill();ctx.restore();
-      }
-    }
-  }
-
-  function drawTouchStick() {
-    if (!touch.active) return;
-    ctx.save();
-    ctx.globalAlpha = .35;
-    ctx.strokeStyle = '#ffffff';
-    ctx.fillStyle = 'rgba(255,255,255,.08)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(touch.sx, touch.sy, 42, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    const dx = touch.x - touch.sx, dy = touch.y - touch.sy;
-    const mag = Math.hypot(dx, dy) || 1;
-    const rr = Math.min(30, mag);
-    ctx.beginPath(); ctx.arc(touch.sx + dx / mag * rr, touch.sy + dy / mag * rr, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawBanners() {
-    if (!state.banners.length) return;
-    const b = state.banners[0];
-    const t = 1 - b.life / b.max;
-    const alpha = Math.min(1, b.life * 1.3, t * 3);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '900 34px system-ui';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(b.text, W / 2, 88 + t * 4);
-    ctx.font = '700 12px system-ui';
-    ctx.fillStyle = 'rgba(255,255,255,.72)';
-    ctx.fillText('STAGE SHIFT', W / 2, 58 + t * 4);
-    ctx.restore();
-  }
-
   function draw() {
     ctx.save();
     const sx = state.shake > .25 ? rand(-state.shake, state.shake) : 0;
@@ -1143,8 +835,8 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     ctx.translate(sx + driftX, sy + driftY);
 
     renderBackground(ctx, W, H, state, player, biome());
-    drawHazards();
-    drawSpawnSignals();
+    renderHazards(ctx, state);
+    renderSpawnSignals(ctx, state, W, H);
 
     for (const r of state.rings) {
       ctx.save();
@@ -1155,7 +847,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
       ctx.restore();
     }
 
-    for (const g of state.gems) drawGem(g);
+    for (const g of state.gems) renderGem(ctx, g, state.time);
 
     for (const p of state.projectiles) {
       ctx.save();
@@ -1176,9 +868,9 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
       ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*.72,0,Math.PI*2);ctx.fill();ctx.restore();
     }
 
-    drawAfterimages();
-    for (const e of state.enemies) drawEnemy(e);
-    drawPlayer();
+    renderAfterimages(ctx, state, biome());
+    for (const e of state.enemies) renderEnemy(ctx, e, state, player);
+    renderPlayer(ctx, state, player, biome(), getDroneSlots());
 
     for (const p of state.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.max);
@@ -1199,8 +891,8 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     }
     ctx.globalAlpha = 1;
 
-    drawTouchStick();
-    drawBanners();
+    renderTouchStick(ctx, touch);
+    renderBanners(ctx, state, W);
     ctx.restore();
 
     if (state.flash > 0) {
