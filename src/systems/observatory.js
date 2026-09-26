@@ -7,6 +7,7 @@ function distanceToBeam(px, py, bx, by, angle) {
 }
 
 function spawnBeam(state, enemy, angle, phase) {
+  if (state.telemetry) state.telemetry.bossScansFired += 1;
   state.bossBeams.push({
     bossId: enemy.spawnId,
     x: enemy.x,
@@ -100,6 +101,7 @@ export function updateObservatory({
           warmup: enemy.bossPhase === 2 ? 0.72 : 0.92,
           duration: 2.2,
           damage: enemy.damage * 0.68,
+          source: 'observatory-rift',
         },
       );
     }
@@ -127,9 +129,10 @@ export function updateBossBeams(state, player, dt, takePlayerHit, addRing) {
     if (!beam.hit && beam.active > 0) {
       const distance = distanceToBeam(player.x, player.y, beam.x, beam.y, beam.angle);
       if (distance <= beam.width + player.r * 0.28) {
-        const hit = takePlayerHit(beam.damage);
+        const hit = takePlayerHit(beam.damage, 'observatory-scan');
         if (hit) {
           beam.hit = true;
+          if (state.telemetry) state.telemetry.bossScanHits += 1;
           addRing(player.x, player.y, 38, '#ff8f9f', 3, 0.24);
         }
       }
