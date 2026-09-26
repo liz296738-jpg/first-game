@@ -730,7 +730,13 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       state.eliteTimer = Math.max(22, 34 - state.time / 75);
     }
 
-    if (state.time >= state.nextBossAt && !state.sectorBossDefeated) {
+    const sectorEventResolved = state.worldEvent && (state.worldEvent.complete || state.worldEvent.failed);
+    if (
+      state.time >= state.nextBossAt
+      && state.sectorObjectiveComplete
+      && sectorEventResolved
+      && !state.sectorBossDefeated
+    ) {
       queueEnemy('observatory', true, true);
       state.nextBossAt = Infinity;
       state.directorTimer = Math.max(state.directorTimer, 5.5);
