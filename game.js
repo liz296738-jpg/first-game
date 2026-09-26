@@ -1,3 +1,8 @@
+import { BUDGET, FEEL } from './src/config/runtime.js';
+import { BIOMES } from './src/data/biomes.js';
+import { ENEMY_CONFIGS, ENEMY_THREAT } from './src/data/enemies.js';
+import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
+
 (() => {
   'use strict';
 
@@ -38,45 +43,12 @@
 
   const W = canvas.width;
   const H = canvas.height;
-  const BUDGET = Object.freeze({
-    enemies: 180, spawnSignals: 48, projectiles: 620, enemyProjectiles: 340, particles: 680, rings: 96, texts: 120, afterimages: 24, hazards: 24,
-  });
-  const FEEL = Object.freeze({
-    shakeMax: 12.5,
-    ambientDriftX: 2.4,
-    ambientDriftY: 1.6,
-    impactRingChance: .24,
-  });
   const keys = new Set();
   let animationId = 0;
   let lastFrame = performance.now();
   let toastTimer = 0;
   let fpsSmoothed = 60;
   let debugVisible = false;
-
-  const BIOMES = [
-    {
-      name: '星落回廊',
-      skyA: '#070913', skyB: '#0f1731', skyC: '#121731',
-      accent: '#7b6dff', accent2: '#52e0ff', grid: 'rgba(137,155,255,.16)',
-      hazeA: 'rgba(115,91,255,.22)', hazeB: 'rgba(82,224,255,.16)', floor: 'rgba(255,255,255,.08)',
-      silhouette: '#0b1022', vignette: 'rgba(4,5,8,.46)',
-    },
-    {
-      name: '苍辉花庭',
-      skyA: '#071119', skyB: '#102431', skyC: '#0d1f20',
-      accent: '#67f0bf', accent2: '#8df7ff', grid: 'rgba(114,255,213,.12)',
-      hazeA: 'rgba(55,208,164,.18)', hazeB: 'rgba(141,247,255,.12)', floor: 'rgba(197,255,233,.06)',
-      silhouette: '#09171d', vignette: 'rgba(5,9,10,.42)',
-    },
-    {
-      name: '余晖圣所',
-      skyA: '#110814', skyB: '#281025', skyC: '#24161c',
-      accent: '#ff8c87', accent2: '#ffdc90', grid: 'rgba(255,193,152,.11)',
-      hazeA: 'rgba(255,115,137,.16)', hazeB: 'rgba(255,214,133,.12)', floor: 'rgba(255,229,195,.06)',
-      silhouette: '#1e0d15', vignette: 'rgba(9,4,6,.44)',
-    }
-  ];
 
   const touch = {
     active: false,
@@ -312,32 +284,6 @@
     ui.resultCores.textContent = state.cores;
     updateBest();
   }
-
-  const ENEMY_CONFIGS = {
-    drone: { r: 14, hp: 42, speed: 76, damage: 11, color: '#ff6f91', xp: 7 },
-    swift: { r: 10, hp: 27, speed: 132, damage: 9, color: '#ffb45f', xp: 8 },
-    brute: { r: 22, hp: 118, speed: 54, damage: 20, color: '#d45fff', xp: 16 },
-    caster: { r: 13, hp: 58, speed: 68, damage: 12, color: '#7de2ff', xp: 12 },
-    boss: { r: 34, hp: 660, speed: 50, damage: 24, color: '#f6f8ff', xp: 60 },
-  };
-
-  const ENEMY_THREAT = Object.freeze({
-    drone: 1,
-    swift: 1.35,
-    caster: 2.4,
-    brute: 3.2,
-    boss: 12,
-  });
-
-  const ENCOUNTER_TEMPLATES = Object.freeze([
-    { id: 'drift-line', name: '漂移列阵', minTime: 0, cost: 4.5, weight: 4 },
-    { id: 'needle-pincer', name: '针翼夹击', minTime: 18, cost: 6.2, weight: 3.5 },
-    { id: 'bulwark-screen', name: '重盾推进', minTime: 38, cost: 8.2, weight: 2.6 },
-    { id: 'crossfire', name: '远星交叉火力', minTime: 52, cost: 8.8, weight: 2.7 },
-    { id: 'spearhead', name: '星骸矛头', minTime: 68, cost: 10.2, weight: 2.2 },
-    { id: 'closing-net', name: '四向合围', minTime: 84, cost: 11.4, weight: 2.1 },
-    { id: 'elite-anchor', name: '精英锚点', minTime: 105, cost: 12.6, weight: 1.35 },
-  ]);
 
   function randomSpawnPoint(boss = false) {
     const edge = Math.floor(Math.random() * 4);
