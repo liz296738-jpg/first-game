@@ -41,6 +41,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
   let lastFrame = performance.now();
   let toastTimer = 0;
   let fpsSmoothed = 60;
+  let ambientTime = 0;
   let debugVisible = false;
   let selectedWeaponId = localStorage.getItem('void-descent-weapon') || STARTER_WEAPON_ID;
   if (!getPlayableWeapons().some(weapon => weapon.id === selectedWeaponId)) selectedWeaponId = STARTER_WEAPON_ID;
@@ -189,6 +190,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
 
   function startGame() {
     resetState();
+    if (typeof canvas.focus === 'function') canvas.focus({ preventScroll: true });
     ui.startScreen.classList.add('hidden');
     ui.gameOverScreen.classList.add('hidden');
     ui.levelUpScreen.classList.add('hidden');
@@ -1116,11 +1118,12 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
     ctx.save();
     const sx = state.shake > .25 ? rand(-state.shake, state.shake) : 0;
     const sy = state.shake > .25 ? rand(-state.shake, state.shake) : 0;
-    const driftX = Math.sin(state.time * .13) * FEEL.ambientDriftX + Math.sin(state.time * .037 + 1.7) * .8;
-    const driftY = Math.cos(state.time * .11) * FEEL.ambientDriftY + Math.sin(state.time * .043) * .55;
+    const visualTime = state.mode === 'menu' ? ambientTime : state.time;
+    const driftX = Math.sin(visualTime * .13) * FEEL.ambientDriftX + Math.sin(visualTime * .037 + 1.7) * .8;
+    const driftY = Math.cos(visualTime * .11) * FEEL.ambientDriftY + Math.sin(visualTime * .043) * .55;
     ctx.translate(sx + driftX, sy + driftY);
 
-    renderBackground(ctx, W, H, state, player, biome(), vfxProfile());
+    renderBackground(ctx, W, H, state, player, biome(), vfxProfile(), visualTime);
     drawSectorObjective(ctx, state);
     drawWorldEvent(ctx, state);
     renderHazards(ctx, state);
@@ -1242,6 +1245,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
     const dt = Math.min(.033, rawDt);
     lastFrame = now;
     if (rawDt > 0) fpsSmoothed = lerp(fpsSmoothed, Math.min(144, 1 / rawDt), .08);
+    ambientTime += dt;
     if (state.mode === 'playing' && state.telemetry && rawDt > 0) {
       recordFrameHealth(state.telemetry, 1 / rawDt, rawDt);
     }
