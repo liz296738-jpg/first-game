@@ -6,7 +6,7 @@ export const AFFINITIES = Object.freeze({
   machine: { id: 'machine', label: '机械', code: 'MACHINE' },
 });
 
-const BASE_UPGRADES = Object.freeze([
+export const UPGRADE_DEFINITIONS = Object.freeze([
   {
     id: 'damage',
     icon: 'DMG',
@@ -65,6 +65,7 @@ const BASE_UPGRADES = Object.freeze([
     affinity: 'machine',
     name: '分裂火控',
     desc: '额外发射 1 枚投射物。',
+    requirements: [{ source: 'stat', key: 'projectileCount', max: 6 }],
     effects: [{ op: 'capAdd', stat: 'projectileCount', value: 1, cap: 7 }],
   },
   {
@@ -83,6 +84,7 @@ const BASE_UPGRADES = Object.freeze([
     affinity: 'solar',
     name: '弱点标记',
     desc: '暴击率 +10%。',
+    requirements: [{ source: 'stat', key: 'crit', max: 0.549 }],
     effects: [{ op: 'capAdd', stat: 'crit', value: 0.10, cap: 0.65 }],
   },
   {
@@ -112,94 +114,96 @@ const BASE_UPGRADES = Object.freeze([
     desc: '击杀时恢复少量生命。',
     effects: [{ op: 'add', stat: 'lifesteal', value: 0.6 }],
   },
-]);
-
-const SPECIAL = Object.freeze({
-  orbitUnlock: {
+  {
     id: 'orbit-unlock',
     icon: 'ORB',
     rarity: 'rare',
     affinity: 'lunar',
     name: '轨道灵刃',
     desc: '获得 2 枚环绕灵刃，持续切割近身目标。',
+    requirements: [{ source: 'stat', key: 'orbitCount', max: 0 }],
     effects: [
       { op: 'set', stat: 'orbitCount', value: 2 },
       { op: 'set', stat: 'orbitDamage', value: 22 },
     ],
   },
-  orbitBoost: {
+  {
     id: 'orbit-boost',
     icon: 'ORB',
     rarity: 'uncommon',
     affinity: 'lunar',
     name: '灵刃共振',
     desc: '增加 1 枚灵刃，并提高灵刃伤害。',
+    requirements: [
+      { source: 'stat', key: 'orbitCount', min: 1 },
+      { source: 'stat', key: 'orbitCount', max: 5 },
+    ],
     effects: [
       { op: 'capAdd', stat: 'orbitCount', value: 1, cap: 6 },
       { op: 'mul', stat: 'orbitDamage', value: 1.24 },
       { op: 'add', stat: 'orbitRadius', value: 5 },
     ],
   },
-  novaUnlock: {
+  {
     id: 'nova-unlock',
     icon: 'NOVA',
     rarity: 'rare',
     affinity: 'solar',
     name: '脉冲新星',
     desc: '周期性释放环形冲击波。',
+    requirements: [{ source: 'stat', key: 'novaLevel', max: 0 }],
     effects: [
       { op: 'set', stat: 'novaLevel', value: 1 },
       { op: 'set', stat: 'novaTimer', value: 4 },
     ],
   },
-  novaBoost: {
+  {
     id: 'nova-boost',
     icon: 'NOVA',
     rarity: 'uncommon',
     affinity: 'solar',
     name: '新星扩幅',
     desc: '脉冲新星伤害和范围提高，并缩短冷却。',
+    requirements: [
+      { source: 'stat', key: 'novaLevel', min: 1 },
+      { source: 'stat', key: 'novaLevel', max: 4 },
+    ],
     effects: [
       { op: 'capAdd', stat: 'novaLevel', value: 1, cap: 5 },
       { op: 'floorAdd', stat: 'novaTimer', value: -1.3, floor: 0 },
     ],
   },
-  droneUnlock: {
+  {
     id: 'drone-unlock',
     icon: 'DRN',
     rarity: 'rare',
     affinity: 'machine',
     name: '拂晓无人机',
     desc: '获得 1 台无人机辅助射击。',
+    requirements: [{ source: 'stat', key: 'droneLevel', max: 0 }],
     effects: [{ op: 'set', stat: 'droneLevel', value: 1 }],
   },
-  droneBoost: {
+  {
     id: 'drone-boost',
     icon: 'DRN',
     rarity: 'uncommon',
     affinity: 'machine',
     name: '无人机列阵',
     desc: '提高无人机数量与火力。',
+    requirements: [
+      { source: 'stat', key: 'droneLevel', min: 1 },
+      { source: 'stat', key: 'droneLevel', max: 2 },
+    ],
     effects: [{ op: 'capAdd', stat: 'droneLevel', value: 1, cap: 3 }],
   },
-  shield: {
+  {
     id: 'shield',
     icon: 'AEG',
     rarity: 'rare',
     affinity: 'lunar',
     name: '虚空护幕',
     desc: '获得 1 层护盾，可抵消一次受击。',
+    requirements: [{ source: 'stat', key: 'shield', max: 2 }],
     effects: [{ op: 'capAdd', stat: 'shield', value: 1, cap: 3 }],
   },
-});
-
-export function buildUpgradePool(player) {
-  const pool = [...BASE_UPGRADES];
-
-  pool.push(player.orbitCount === 0 ? SPECIAL.orbitUnlock : SPECIAL.orbitBoost);
-  pool.push(player.novaLevel === 0 ? SPECIAL.novaUnlock : SPECIAL.novaBoost);
-  pool.push(player.droneLevel === 0 ? SPECIAL.droneUnlock : SPECIAL.droneBoost);
-  if (player.shield < 3) pool.push(SPECIAL.shield);
-
-  return pool;
-}
+]);
