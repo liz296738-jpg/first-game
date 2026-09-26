@@ -394,3 +394,23 @@ footer { min-height: 45px; color: #4c566f; font: 600 9px/1 ui-monospace, monospa
   .weapon-choices { grid-template-columns: 1fr; }
   .loadout-heading b { display: none; }
 }
+
+.result-build {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -5px 0 22px;
+  justify-content: center;
+}
+.result-build span {
+  border: 1px solid rgba(185,211,255,.10);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(255,255,255,.025);
+  color: #8490aa;
+  font: 750 8px/1 ui-monospace, monospace;
+  letter-spacing: .05em;
+}
+.result-build span.weapon { color: #9cecff; border-color: rgba(108,230,255,.18); }
+.result-build span.resonance { color: #dbc5ff; border-color: rgba(185,139,255,.18); }
+.result-build span.anomaly { color: #ff9fba; border-color: rgba(255,112,151,.20); background: rgba(255,78,126,.035); }
