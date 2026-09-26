@@ -32,6 +32,8 @@ The project deliberately uses native ES Modules and static assets so Render can 
     ├── render/
     │   └── background.js
     ├── systems/
+    │   ├── director.js
+    │   ├── hazards.js
     │   └── upgrades.js
     └── ui/
         └── elements.js
@@ -49,7 +51,7 @@ Small reusable engine primitives and state factories. This layer must not depend
 Declarative content definitions: biomes, enemy stats, encounter templates and upgrade metadata. New content should increasingly be added here rather than as branches inside the runtime.
 
 ### systems/
-Game rules that interpret data and mutate state. The first extracted system is the upgrade effect interpreter.
+Game rules that interpret data and mutate state. Upgrade effects, threat-budget encounter scheduling and ground-hazard simulation now live here.
 
 ### render/
 Pure or mostly-pure visual rendering modules. The celestial background pass is the first extracted renderer.
@@ -72,12 +74,11 @@ Temporary orchestration layer. It still owns too much simulation and rendering l
 
 ## Next extraction targets
 
-1. Encounter Director scheduling.
-2. Ground-hazard simulation.
-3. Entity rendering.
-4. Combat/projectile simulation.
-5. Upgrade/Constellation selection flow.
-6. Local save schema.
+1. Entity rendering.
+2. Combat/projectile simulation.
+3. Player input and movement.
+4. Upgrade/Constellation selection flow.
+5. Local save schema.
 
 ## Validation baseline
 
