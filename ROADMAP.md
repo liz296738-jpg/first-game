@@ -25,7 +25,7 @@
 - [x] 远景巨构
 - [x] 相机轻漂移
 - [x] 暗角 / 色调分级 / 颗粒
-- [ ] Boss / 扇区状态改变背景
+- [x] Boss / 扇区状态改变背景
 
 ### 玩家
 - [x] 有方向感的机体轮廓
@@ -41,7 +41,7 @@
 - [x] 精英 aura / 视觉标识
 - [x] 伤害数字层级
 - [x] 震屏预算
-- [ ] 特效质量档位
+- [x] 特效质量档位
 
 **退出条件**：随机截图看起来是“一个完整作品”，不是原型。
 
@@ -63,8 +63,8 @@
 - [x] tag 系统
 - [x] rarity
 - [ ] 前置条件
-- [ ] synergy
-- [ ] keystone
+- [x] synergy
+- [x] keystone
 - [ ] anomaly / cursed 强化
 - [x] 当前 build 可视化
 
@@ -122,7 +122,7 @@
 
 ## 当前开发优先级
 
-1. 继续 Stage 0 模块化：下一步抽离实体渲染、Combat/Projectile simulation 与输入/移动。
-2. 完成 Stage 1 剩余项：死亡溶解、Boss/扇区背景响应、特效质量档位。
+1. 继续 Stage 0 模块化：下一步抽离 Combat/Projectile simulation 与输入/移动。
+2. Stage 1 只剩死亡溶解；同时持续做“壁纸截图”视觉校准。
 3. 试玩并校准 Stage 2 的相位冲刺、预警、击退、危险区和遭遇预算。
-4. Stage 3 已开始：继续做前置条件、synergy、Keystone 与真正的 Constellation Resonance。
+4. Stage 3 继续做升级前置条件、武器数据表与更多经试玩验证的 Resonance。
