@@ -1382,6 +1382,18 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
     }
   }
 
+  function updateConstellationUI() {
+    if (!ui.constellationStrip) return;
+    ui.constellationStrip.innerHTML = Object.values(AFFINITIES).map(affinity => {
+      const count = player.affinities[affinity.id] || 0;
+      const active = count > 0 ? ' active' : '';
+      const filled = Math.min(3, count);
+      return `<span class="constellation-node affinity-${affinity.id}${active}" title="${affinity.label}">
+        <i></i><b>${affinity.code.slice(0, 1)}</b><em>${count}</em><small style="--fill:${filled / 3}"></small>
+      </span>`;
+    }).join('');
+  }
+
   function updateBuildTags() {
     const tags = [
       `ATK ${Math.round(player.damage)}`,
@@ -1421,6 +1433,7 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
         '\nDIRECTOR ' + state.directorEncounter + ' [' + state.directorBudget.toFixed(1) + ']';
     }
     updateBuildTags();
+    updateConstellationUI();
   }
 
   function loop(now) {
@@ -1490,6 +1503,7 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
   makeAtmosphere();
   renderBest();
   updateBuildTags();
+  updateConstellationUI();
   draw();
   cancelAnimationFrame(animationId);
   animationId = requestAnimationFrame(loop);
