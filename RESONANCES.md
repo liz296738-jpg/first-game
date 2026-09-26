@@ -15,7 +15,8 @@ A good Resonance must visibly alter how the player approaches combat. Flat bonus
 ## Implemented Resonances
 
 ### 日冕复写 / Corona Repeater
-Requirement: Solar 3 + Machine 2
+Requirement: Solar 3 + Machine 2  
+Weapon: Projectile-tagged weapons only
 
 Every fifth primary-weapon volley creates an additional pair of angled solar projectiles.
 
@@ -34,8 +35,20 @@ Design purpose:
 - rewards movement-oriented builds without making the player permanently invulnerable;
 - creates a clear visual state around the player.
 
+### 视界合唱 / Event Horizon Choir
+Requirement: Void 3 + Lunar 2  
+Weapon: Orbit-tagged weapons only
+
+Orbit weapons periodically collapse nearby space, pulling enemies inward and dealing one synchronized cut.
+
+Design purpose:
+- gives Halo Array a spatial-control capstone rather than borrowing projectile mechanics;
+- turns orbit radius and positioning into setup for periodic crowd compression;
+- visually reinforces the lunar/void identity.
+
 ### 黑星破裂 / Blackstar Rupture
-Requirement: Void 3 + Solar 2
+Requirement: Void 3 + Solar 2  
+Weapon: Projectile-tagged weapons only
 
 An enemy killed by a critical hit ruptures and damages nearby enemies.
 
@@ -58,11 +71,6 @@ Design purpose:
 ## Candidate next Resonances
 
 These are design candidates, not commitments.
-
-### Event Horizon Choir
-Void + Lunar
-
-Orbitals periodically collapse inward, pulling nearby enemies before snapping back out.
 
 ### Ghost Assembly
 Machine + Aether
