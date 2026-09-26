@@ -1,13 +1,13 @@
 import { BUDGET, FEEL } from './src/config/runtime.js';
 import { BIOMES } from './src/data/biomes.js';
-import { ENEMY_CONFIGS, ENEMY_THREAT } from './src/data/enemies.js';
-import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
+import { ENEMY_CONFIGS } from './src/data/enemies.js';
 import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src/core/math.js';
 import { getUIElements } from './src/ui/elements.js';
 import { createRunState, createPlayerState } from './src/core/state.js';
 import { drawBackground as renderBackground } from './src/render/background.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
+import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 
 (() => {
   'use strict';
@@ -160,124 +160,6 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
     if (edge === 1) return { x: W + margin, y: rand(-margin, H + margin), edge };
     if (edge === 2) return { x: rand(-margin, W + margin), y: H + margin, edge };
     return { x: -margin, y: rand(-margin, H + margin), edge };
-  }
-
-  function edgeSpawnPoint(edge, lane = .5, margin = 42) {
-    const t = clamp(lane, .06, .94);
-    if (edge === 0) return { x: W * t, y: -margin, edge };
-    if (edge === 1) return { x: W + margin, y: H * t, edge };
-    if (edge === 2) return { x: W * (1 - t), y: H + margin, edge };
-    return { x: -margin, y: H * (1 - t), edge };
-  }
-
-  function queueEnemy(kind = null, elite = false, boss = false, spawnPoint = null, delay = 0) {
-    if (state.enemies.length + state.spawnSignals.length >= BUDGET.enemies || state.spawnSignals.length >= BUDGET.spawnSignals) return false;
-    const pos = spawnPoint || randomSpawnPoint(boss);
-    const max = boss ? 1.35 : elite ? .92 : .42;
-    state.spawnSignals.push({ kind, elite, boss, x: pos.x, y: pos.y, edge: pos.edge, delay: Math.max(0, delay), life: max, max });
-    if (boss) { banner('异常质量正在接近'); showToast('高能反应：准备迎击', 1200); }
-    return true;
-  }
-
-  function encounterThreat(kind, elite = false) {
-    return (ENEMY_THREAT[kind] || 1) * (elite ? 3.15 : 1);
-  }
-
-  function currentEncounterBudget() {
-    const timeGrowth = state.time / 17;
-    const levelGrowth = Math.max(0, player.level - 1) * .16;
-    return clamp(5 + timeGrowth + levelGrowth, 5, 18);
-  }
-
-  function weightedEncounterChoice(candidates) {
-    let total = candidates.reduce((sum, item) => sum + item.weight, 0);
-    let roll = Math.random() * total;
-    for (const item of candidates) {
-      roll -= item.weight;
-      if (roll <= 0) return item;
-    }
-    return candidates[candidates.length - 1];
-  }
-
-  function scheduleEncounter(template, budget) {
-    const baseEdge = Math.floor(Math.random() * 4);
-    const opposite = (baseEdge + 2) % 4;
-    const sideA = (baseEdge + 1) % 4;
-    const sideB = (baseEdge + 3) % 4;
-    let spent = 0;
-    let sequence = 0;
-
-    const add = (kind, edge, lane, elite = false, delay = null) => {
-      const cost = encounterThreat(kind, elite);
-      if (spent + cost > budget + .2) return false;
-      const queued = queueEnemy(kind, elite, false, edgeSpawnPoint(edge, lane), delay ?? sequence * .07);
-      if (!queued) return false;
-      spent += cost;
-      sequence += 1;
-      return true;
-    };
-
-    if (template.id === 'drift-line') {
-      [0.2, 0.36, 0.52, 0.68, 0.84].forEach((lane, i) => add(i === 2 && state.time > 28 ? 'swift' : 'drone', baseEdge, lane));
-    } else if (template.id === 'needle-pincer') {
-      [0.28, 0.5, 0.72].forEach(lane => add('swift', baseEdge, lane));
-      [0.3, 0.5, 0.7].forEach(lane => add('swift', opposite, lane, false, .1 + sequence * .06));
-    } else if (template.id === 'bulwark-screen') {
-      add('brute', baseEdge, .36);
-      add('brute', baseEdge, .64);
-      [0.18, 0.5, 0.82].forEach(lane => add('drone', baseEdge, lane, false, .12 + sequence * .06));
-    } else if (template.id === 'crossfire') {
-      add('caster', baseEdge, .5);
-      add('caster', opposite, .5, false, .16);
-      [0.28, 0.72].forEach(lane => add('drone', sideA, lane, false, .2 + sequence * .05));
-      [0.32, 0.68].forEach(lane => add('drone', sideB, lane, false, .22 + sequence * .05));
-    } else if (template.id === 'spearhead') {
-      add('brute', baseEdge, .5);
-      add('swift', baseEdge, .28, false, .08);
-      add('swift', baseEdge, .72, false, .12);
-      [0.14, 0.38, 0.62, 0.86].forEach(lane => add('drone', baseEdge, lane, false, .16 + sequence * .05));
-    } else if (template.id === 'closing-net') {
-      [0, 1, 2, 3].forEach((edge, i) => {
-        add(i % 2 ? 'swift' : 'drone', edge, .38, false, i * .08);
-        add('drone', edge, .66, false, .16 + i * .08);
-      });
-    } else if (template.id === 'elite-anchor') {
-      const eliteKind = state.time > 135 && chance(.42) ? 'caster' : 'brute';
-      add(eliteKind, baseEdge, .5, true, 0);
-      [0.22, 0.38, 0.62, 0.78].forEach((lane, i) => add(i % 2 ? 'swift' : 'drone', baseEdge, lane, false, .16 + i * .07));
-    }
-
-    let filler = 0;
-    while (spent + ENEMY_THREAT.drone <= budget && filler < 8) {
-      const edge = Math.floor(Math.random() * 4);
-      if (!add(state.time > 62 && chance(.26) ? 'swift' : 'drone', edge, rand(.16, .84), false, .28 + filler * .055)) break;
-      filler += 1;
-    }
-
-    state.directorBudget = Math.round(budget * 10) / 10;
-    state.directorEncounter = template.name;
-    state.lastEncounterId = template.id;
-    state.encounterCount += 1;
-  }
-
-  function runEncounterDirector() {
-    const bossActive = state.enemies.some(e => e.boss) || state.spawnSignals.some(s => s.boss);
-    if (bossActive) {
-      state.directorEncounter = 'BOSS';
-      state.directorTimer = 3.2;
-      return;
-    }
-
-    const budget = currentEncounterBudget();
-    let candidates = ENCOUNTER_TEMPLATES.filter(item => item.minTime <= state.time && item.cost <= budget + .35);
-    const alternates = candidates.filter(item => item.id !== state.lastEncounterId);
-    if (alternates.length) candidates = alternates;
-    if (!candidates.length) candidates = [ENCOUNTER_TEMPLATES[0]];
-    const template = weightedEncounterChoice(candidates);
-    scheduleEncounter(template, budget);
-
-    const pace = clamp(8.4 - state.time / 105, 5.6, 8.4);
-    state.directorTimer = rand(pace * .84, pace * 1.18);
   }
 
   function spawnEnemy(kind = null, elite = false, boss = false, spawnPoint = null) {
@@ -758,7 +640,7 @@ import { applyUpgradeEffects } from './src/systems/upgrades.js';
     }
 
     state.directorTimer -= dt;
-    if (state.directorTimer <= 0) runEncounterDirector();
+    if (state.directorTimer <= 0) directEncounter(state, player, queueEnemy, W, H);
 
     state.eliteTimer -= dt;
     if (state.eliteTimer <= 0) {
