@@ -30,6 +30,7 @@
 - `GAME_DESIGN.md`：核心设计、同类游戏研究与原创方向。
 - `ROADMAP.md`：阶段开发路线。
 - `DEVLOG.md`：开发记录。
+- `ARCHITECTURE.md`：当前代码结构、模块边界与重构原则。
 
 ## 部署
 
