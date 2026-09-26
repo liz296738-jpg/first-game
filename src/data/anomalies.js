@@ -1,0 +1,55 @@
+export const ANOMALIES = Object.freeze([
+  {
+    id: 'glass-engine',
+    kind: 'anomaly',
+    icon: 'Ξ',
+    rarity: 'anomaly',
+    affinity: 'void',
+    name: '玻璃引擎',
+    desc: '主武器伤害大幅提高，但最大生命被永久削薄。',
+    upside: '伤害 ×1.70',
+    downside: '最大生命 ×0.68',
+    effects: [
+      { op: 'mul', stat: 'damage', value: 1.70 },
+      { op: 'mul', stat: 'maxHp', value: 0.68 },
+      { op: 'clampHp' },
+    ],
+  },
+  {
+    id: 'redline-covenant',
+    kind: 'anomaly',
+    icon: 'Ω',
+    rarity: 'anomaly',
+    affinity: 'machine',
+    name: '红线契约',
+    desc: '武器进入超频红线：射速与移动提高，但相位冲刺恢复显著变慢。',
+    upside: '射速 ×1.60 · 移速 ×1.10',
+    downside: '冲刺冷却 ×1.45',
+    effects: [
+      { op: 'mul', stat: 'fireRate', value: 1.60 },
+      { op: 'mul', stat: 'speed', value: 1.10 },
+      { op: 'mul', stat: 'dashCooldownMax', value: 1.45 },
+    ],
+  },
+  {
+    id: 'fracture-barrage',
+    kind: 'anomaly',
+    icon: '∆',
+    rarity: 'anomaly',
+    affinity: 'aether',
+    name: '裂界齐射',
+    desc: '立即增加两枚投射物，但单发伤害下降且散布扩大。',
+    upside: '投射物 +2',
+    downside: '伤害 ×0.78 · 散布扩大',
+    effects: [
+      { op: 'capAdd', stat: 'projectileCount', value: 2, cap: 7 },
+      { op: 'mul', stat: 'damage', value: 0.78 },
+      { op: 'add', stat: 'spread', value: 0.13 },
+    ],
+  },
+]);
+
+export function availableAnomalies(player) {
+  const owned = new Set(player.anomalies || []);
+  return ANOMALIES.filter(anomaly => !owned.has(anomaly.id));
+}
