@@ -31,3 +31,19 @@
 - Refactor the monolithic runtime into maintainable modules.
 - Add debug/performance counters and effect budgets.
 - Continue Visual Pass 02 with impact rings, camera drift, death dissolve and controlled screen-shake.
+
+
+## 2026-09-26 — Alpha 0.3 movement & readability pass
+
+- Replaced instantaneous movement with responsive acceleration/deceleration.
+- Added Phase Dash on Space/Shift with cooldown, brief invulnerability, mobile control, screen feedback and afterimages.
+- Added edge spawn warnings before enemies materialize.
+- Added committed aim/wind-up telegraphs for caster and boss ranged attacks so dodging the warning is rewarded.
+- Added an F3 diagnostics overlay for FPS, enemy, projectile and FX counts.
+- Updated the HUD with dash readiness/cooldown feedback.
+- Re-validated the committed GitHub `game.js` with the JavaScript parser after the changes.
+
+### Next
+- Add enemy separation and contact knockback.
+- Define hard entity/VFX budgets and degradation behavior.
+- Begin Encounter Director work so difficulty comes from compositions rather than spawn-rate inflation.
