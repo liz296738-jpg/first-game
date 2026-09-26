@@ -350,8 +350,10 @@ export function drawPlayer(ctx, state, player, colors, droneSlots) {
     ctx.fill();
   }
 
-  ctx.shadowColor = player.shield > 0 ? '#dcfbff' : colors.accent;
-  ctx.shadowBlur = player.shield > 0 ? 36 : 26;
+  const phaseGuardActive = player.phaseGuardTimer > 0;
+  const guarded = player.shield > 0 || phaseGuardActive;
+  ctx.shadowColor = phaseGuardActive ? '#c7dcff' : player.shield > 0 ? '#dcfbff' : colors.accent;
+  ctx.shadowBlur = guarded ? 36 : 26;
   const hull = ctx.createLinearGradient(-18, -14, 24, 12);
   hull.addColorStop(0, colors.accent);
   hull.addColorStop(0.52, '#b4adff');
@@ -409,14 +411,14 @@ export function drawPlayer(ctx, state, player, colors, droneSlots) {
   ctx.beginPath();
   ctx.arc(0, 0, player.r + 15, 0.25, 1.45);
   ctx.stroke();
-  if (player.shield > 0) {
+  if (player.shield > 0 || phaseGuardActive) {
     ctx.rotate(-state.time * 0.7);
-    ctx.strokeStyle = 'rgba(220,251,255,.72)';
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = '#dffcff';
-    ctx.shadowBlur = 14;
+    ctx.strokeStyle = phaseGuardActive ? 'rgba(199,220,255,.86)' : 'rgba(220,251,255,.72)';
+    ctx.lineWidth = phaseGuardActive ? 2.1 : 1.5;
+    ctx.shadowColor = phaseGuardActive ? '#b8c8ff' : '#dffcff';
+    ctx.shadowBlur = phaseGuardActive ? 20 : 14;
     ctx.beginPath();
-    ctx.arc(0, 0, player.r + 20, 0.18, Math.PI * 1.62);
+    ctx.arc(0, 0, player.r + (phaseGuardActive ? 23 : 20), 0.18, Math.PI * 1.62);
     ctx.stroke();
   }
   ctx.restore();
