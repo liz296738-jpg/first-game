@@ -19,6 +19,11 @@ import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/p
 import { equipWeapon } from './src/systems/weapons.js';
 import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
 import { requestDash as tryDash, updatePlayerMovement } from './src/systems/movement.js';
+import { updateSectorOneObjectives, sectorMissionText } from './src/systems/sector-one.js';
+import { spawnRiftHazard } from './src/systems/hazards.js';
+import { initializeObservatory, updateObservatory, updateBossBeams } from './src/systems/observatory.js';
+import { drawSectorObjective, drawWorldEvent } from './src/render/world.js';
+import { drawObservatoryBeams } from './src/render/observatory.js';
 
 (() => {
   'use strict';
@@ -248,11 +253,12 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
       else if (state.time > 52 && roll < .28) kind = 'caster';
       else if (state.time > 26 && roll < .44) kind = 'swift';
     }
-    if (boss) kind = 'boss';
+    if (boss && !kind) kind = 'boss';
 
     const c = ENEMY_CONFIGS[kind];
     const mult = boss ? 1.65 : elite ? 4 : 1;
     const enemy = {
+      spawnId: state.nextEntityId++,
       type: kind,
       x, y,
       r: c.r * (elite ? 1.22 : 1),
@@ -274,9 +280,15 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
       attackAngle: 0,
       pendingAttack: null,
     };
+    if (kind === 'observatory') initializeObservatory(enemy);
     state.enemies.push(enemy);
-    if (boss) { banner('虚空先驱降临'); showToast('Boss 出现', 1600); }
-    else if (elite) showToast('精英信号出现');
+    if (kind === 'observatory') {
+      banner('The Observatory · 观测者');
+      showToast('扇区核心已锁定：规避扫描轴线', 1750);
+    } else if (boss) {
+      banner('虚空先驱降临');
+      showToast('Boss 出现', 1600);
+    } else if (elite) showToast('精英信号出现');
   }
 
   function nearestEnemy(origin = player, limit = Infinity) {
@@ -393,8 +405,17 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     if (enemy.elite) state.cores += enemy.boss ? 3 : 1;
     if (enemy.boss) {
       player.hp = Math.min(player.maxHp, player.hp + 28);
-      showToast('Boss 击破 · 恢复生命并获得晶核', 1700);
-      banner('Boss 已歼灭');
+      if (enemy.type === 'observatory') {
+        state.sectorBossDefeated = true;
+        state.cores += 2;
+        addRing(enemy.x, enemy.y, 190, '#ffd693', 7, 1.05);
+        addRing(enemy.x, enemy.y, 250, '#8ff4ff', 2.5, 1.18);
+        showToast('观测者崩解 · 扇区核心解除锁定', 1900);
+        banner('The Observatory · Signal Lost');
+      } else {
+        showToast('Boss 击破 · 恢复生命并获得晶核', 1700);
+        banner('Boss 已歼灭');
+      }
     }
     if (player.lifesteal > 0) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
 
@@ -675,6 +696,21 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
       height: H,
     });
 
+    updateSectorOneObjectives({
+      state,
+      player,
+      dt,
+      width: W,
+      height: H,
+      addXp,
+      addRing,
+      addShake,
+      showToast,
+      banner,
+      spawnHazard: spawnRiftHazard,
+    });
+    if (state.mode === 'upgrade') return;
+
     // Ambient pressure keeps the field alive; major difficulty comes from authored encounter packs.
     const ambientRate = Math.max(.56, 1.28 - state.time / 520);
     state.spawnTimer -= dt;
@@ -694,7 +730,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     }
 
     if (state.time >= state.nextBossAt) {
-      queueEnemy('boss', true, true);
+      queueEnemy('observatory', true, true);
       state.nextBossAt += 58;
       state.directorTimer = Math.max(state.directorTimer, 4.5);
     }
@@ -710,6 +746,8 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     }
 
     simulateHazards(state, player, dt, takePlayerHit, addRing);
+    if (state.mode === 'dying' || state.mode === 'gameover') return;
+    updateBossBeams(state, player, dt, takePlayerHit, addRing);
     if (state.mode === 'dying' || state.mode === 'gameover') return;
 
     const equippedWeapon = getWeapon(player.weaponId);
@@ -787,6 +825,20 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
           e.pendingAttack = 'caster';
           e.shootTimer = e.elite ? 1.55 : 1.95;
         }
+      } else if (e.type === 'observatory') {
+        updateObservatory({
+          state,
+          player,
+          enemy: e,
+          dt,
+          spawnHazard: spawnRiftHazard,
+          width: W,
+          height: H,
+          addRing,
+          addShake,
+          banner,
+          showToast,
+        });
       } else if (e.boss) {
         const wobble = Math.sin(state.time * 2 + e.phase) * .18;
         e.x += (baseDirX - baseDirY * wobble) * e.speed * dt;
@@ -902,7 +954,10 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     ctx.translate(sx + driftX, sy + driftY);
 
     renderBackground(ctx, W, H, state, player, biome(), vfxProfile());
+    drawSectorObjective(ctx, state);
+    drawWorldEvent(ctx, state);
     renderHazards(ctx, state);
+    drawObservatoryBeams(ctx, state, W, H);
     renderSpawnSignals(ctx, state, W, H);
 
     for (const r of state.rings) {
@@ -989,6 +1044,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     ui.xpFill.style.width = `${(player.xp / player.xpNeed) * 100}%`;
     ui.timerText.textContent = formatTime(state.time);
     ui.waveText.textContent = `WAVE ${state.wave}`;
+    if (ui.missionText) ui.missionText.textContent = state.sectorBossDefeated ? '观测者已摧毁 · 扇区清空中' : sectorMissionText(state);
     ui.killsText.textContent = state.kills;
     ui.coresText.textContent = state.cores;
     ui.stageText.textContent = biome().name;
@@ -1004,6 +1060,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
         '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
         '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length) + '/' + (BUDGET.particles + BUDGET.rings + BUDGET.afterimages) +
         '\nWEAPON ' + (player.weaponName || '-') +
+        '\nMISSION ' + sectorMissionText(state) +
         '\nVFX ' + vfxProfile().label +
         '\nHAZARD ' + state.hazards.length + '/' + BUDGET.hazards +
         '\nBUDGET E ' + state.enemies.length + '/' + BUDGET.enemies +
