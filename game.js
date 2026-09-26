@@ -8,7 +8,7 @@ import { drawBackground as renderBackground } from './src/render/background.js';
 import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawPlayerDeath as renderPlayerDeath, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { drawProjectiles as renderProjectiles } from './src/render/projectiles.js';
 import { AFFINITIES } from './src/data/upgrades.js';
-import { STARTER_WEAPON_ID, getWeapon } from './src/data/weapons.js';
+import { STARTER_WEAPON_ID, getWeapon, getPlayableWeapons } from './src/data/weapons.js';
 import { buildUpgradePool, applyUpgradeEffects } from './src/systems/upgrades.js';
 import { injectAnomalyOffer } from './src/systems/anomalies.js';
 import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
@@ -35,6 +35,8 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
   let toastTimer = 0;
   let fpsSmoothed = 60;
   let debugVisible = false;
+  let selectedWeaponId = localStorage.getItem('void-descent-weapon') || STARTER_WEAPON_ID;
+  if (getWeapon(selectedWeaponId).status !== 'playable') selectedWeaponId = STARTER_WEAPON_ID;
   let vfxMode = localStorage.getItem('void-descent-vfx') || 'standard';
   if (!VFX_PROFILES[vfxMode]) vfxMode = 'standard';
 
@@ -67,7 +69,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
   const state = createRunState();
 
   const player = createPlayerState(W, H);
-  equipWeapon(player, getWeapon(STARTER_WEAPON_ID));
+  equipWeapon(player, getWeapon(selectedWeaponId));
 
   function currentBiomeIndex() {
     return Math.floor(state.time / 75) % BIOMES.length;
@@ -142,7 +144,28 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
 
   function resetPlayer() {
     Object.assign(player, createPlayerState(W, H));
-    equipWeapon(player, getWeapon(STARTER_WEAPON_ID));
+    equipWeapon(player, getWeapon(selectedWeaponId));
+  }
+
+  function renderWeaponChoices() {
+    if (!ui.weaponChoices) return;
+    ui.weaponChoices.innerHTML = getPlayableWeapons().map(weapon => {
+      const active = weapon.id === selectedWeaponId ? ' active' : '';
+      return `<button class="weapon-choice${active}" type="button" data-weapon="${weapon.id}">
+        <span class="weapon-code">${weapon.code}</span>
+        <strong>${weapon.name}</strong>
+        <p>${weapon.description}</p>
+        <em aria-hidden="true"></em>
+      </button>`;
+    }).join('');
+
+    for (const button of ui.weaponChoices.querySelectorAll('[data-weapon]')) {
+      button.addEventListener('click', () => {
+        selectedWeaponId = button.dataset.weapon;
+        localStorage.setItem('void-descent-weapon', selectedWeaponId);
+        renderWeaponChoices();
+      });
+    }
   }
 
   function resetState() {
@@ -451,16 +474,22 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
 
   function orbitDamageTick(dt) {
     if (!player.orbitCount) return;
+    const weapon = getWeapon(player.weaponId);
+    const hitRate = weapon.behavior === 'orbit-primary' ? (weapon.orbit?.hitRate || 7.2) : 7;
+    const baseDamage = weapon.base?.damage || 24;
+    const weaponScaling = Math.max(.55, player.damage / Math.max(1, baseDamage));
+    const contactDamage = player.orbitDamage * .09 * weaponScaling;
+
     for (let i = 0; i < player.orbitCount; i++) {
       const a = state.time * player.orbitSpeed + i * (Math.PI * 2 / player.orbitCount);
       const ox = player.x + Math.cos(a) * player.orbitRadius;
       const oy = player.y + Math.sin(a) * player.orbitRadius;
       for (const e of state.enemies) {
         if (e.dead) continue;
-        const rr = e.r + 10;
+        const rr = e.r + (weapon.orbit?.bladeSize || 10);
         const dx = ox - e.x, dy = oy - e.y;
-        if (dx * dx + dy * dy <= rr * rr && chance(dt * 7)) {
-          damageEnemy(e, player.orbitDamage * dt * 5.5, '#dcd2ff');
+        if (dx * dx + dy * dy <= rr * rr && chance(dt * hitRate)) {
+          damageEnemy(e, contactDamage, weapon.behavior === 'orbit-primary' ? '#c7dcff' : '#dcd2ff');
         }
       }
     }
@@ -636,11 +665,14 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     simulateHazards(state, player, dt, takePlayerHit, addRing);
     if (state.mode === 'dying' || state.mode === 'gameover') return;
 
-    player.fireTimer -= dt;
-    const target = nearestEnemy();
-    if (target && player.fireTimer <= 0) {
-      fireAt(target);
-      player.fireTimer = 1 / player.fireRate;
+    const equippedWeapon = getWeapon(player.weaponId);
+    if (equippedWeapon.behavior === 'projectile-auto') {
+      player.fireTimer -= dt;
+      const target = nearestEnemy();
+      if (target && player.fireTimer <= 0) {
+        fireAt(target);
+        player.fireTimer = 1 / player.fireRate;
+      }
     }
 
     if (player.novaLevel > 0) {
@@ -996,6 +1028,7 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
   makeAtmosphere();
   refreshVfxButton();
   renderBest();
+  renderWeaponChoices();
   updateBuildTags();
   updateConstellationUI();
   draw();
