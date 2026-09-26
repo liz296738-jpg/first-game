@@ -61,3 +61,24 @@
 - Introduce an Encounter Director with authored enemy compositions and threat budgets.
 - Add a controlled impact-ring pass and screen-shake budget.
 - Begin modularizing the monolithic runtime before content growth accelerates.
+
+
+## 2026-09-26 — Alpha 0.4 encounter director & controlled impact
+
+- Replaced the old continuously accelerating random spawner with a two-layer pacing model:
+  - low-intensity ambient pressure;
+  - authored encounter packs driven by a threat budget.
+- Added seven encounter archetypes: drift line, needle pincer, bulwark screen, crossfire, spearhead, closing net and elite anchor.
+- Encounter composition now grows through a bounded threat budget based on run time and player level instead of relying primarily on spawn-rate inflation.
+- Added staggered spawn scheduling so formations arrive as readable events rather than appearing in a single frame.
+- Boss presence temporarily suppresses normal encounter scheduling to preserve encounter hierarchy.
+- Added impact rings on significant hits and restrained critical-hit camera feedback.
+- Added a hard screen-shake ceiling and centralized shake handling.
+- Added very subtle ambient camera drift to improve the living-wallpaper feel without interfering with aiming/readability.
+- Updated F3 diagnostics to expose the active encounter and its current threat budget.
+- Re-validated the committed GitHub `game.js`: JavaScript parser check passes.
+
+### Next
+- Add the first readable ground-hazard framework.
+- Begin splitting the monolithic runtime into maintainable data / simulation / rendering sections.
+- Add VFX quality settings and a reduced-effects path before effect density increases further.
