@@ -25,6 +25,7 @@ export const ANOMALIES = Object.freeze([
     desc: '武器进入超频红线：射速与移动提高，但相位冲刺恢复显著变慢。',
     upside: '射速 ×1.60 · 移速 ×1.10',
     downside: '冲刺冷却 ×1.45',
+    requirements: [{ source: 'weaponTag', key: 'projectile', truthy: true }],
     effects: [
       { op: 'mul', stat: 'fireRate', value: 1.60 },
       { op: 'mul', stat: 'speed', value: 1.10 },
@@ -41,6 +42,7 @@ export const ANOMALIES = Object.freeze([
     desc: '立即增加两枚投射物，但单发伤害下降且散布扩大。',
     upside: '投射物 +2',
     downside: '伤害 ×0.78 · 散布扩大',
+    requirements: [{ source: 'weaponTag', key: 'projectile', truthy: true }],
     effects: [
       { op: 'capAdd', stat: 'projectileCount', value: 2, cap: 7 },
       { op: 'mul', stat: 'damage', value: 0.78 },
