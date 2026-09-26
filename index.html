@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#050713" />
+  <meta name="description" content="Void Descent — an original browser survivor-like roguelite set among celestial ruins." />
+  <title>虚空突围 · Void Descent</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Void Descent">
+        <span class="brand-mark"><i></i></span>
+        <span class="brand-copy"><b>VOID DESCENT</b><small>CELESTIAL RUIN // PROTOTYPE</small></span>
+      </div>
+      <div class="top-actions">
+        <span class="build-tag">ALPHA 0.2</span>
+        <button id="pauseBtn" class="ghost-btn" type="button" aria-label="暂停">暂停</button>
+      </div>
+    </header>
+
+    <section class="game-wrap">
+      <canvas id="gameCanvas" width="1280" height="720" aria-label="虚空突围游戏画布"></canvas>
+      <div class="frame-glow" aria-hidden="true"></div>
+      <div class="scanline" aria-hidden="true"></div>
+
+      <div id="hud" class="hud hidden">
+        <div class="hud-left glass-hud">
+          <div class="pilot-line">
+            <span class="pilot-dot"></span>
+            <div><small>FRAME</small><strong>ASTRA-01</strong></div>
+            <span class="level-pill">LV <b id="levelText">1</b></span>
+          </div>
+          <div class="bar hp-bar"><i id="hpFill"></i><span></span></div>
+          <div class="bar xp-bar"><i id="xpFill"></i><span></span></div>
+          <div id="buildTags" class="build-tags"></div>
+        </div>
+        <div class="hud-center">
+          <small id="stageText">星落回廊</small>
+          <strong id="timerText">00:00</strong>
+          <span id="waveText">WAVE 1</span>
+        </div>
+        <div class="hud-right glass-hud">
+          <div><small>ELIMINATED</small><strong id="killsText">0</strong></div>
+          <div><small>CORES</small><strong id="coresText">0</strong></div>
+        </div>
+      </div>
+
+      <section id="startScreen" class="overlay start-screen">
+        <div class="start-ornament ornament-a" aria-hidden="true"></div>
+        <div class="start-ornament ornament-b" aria-hidden="true"></div>
+        <div class="panel hero-panel">
+          <div class="hero-kicker"><span></span>CELESTIAL SURVIVAL PROTOCOL</div>
+          <p class="eyebrow">A BROWSER ROGUELITE EXPERIMENT</p>
+          <h1><span>虚空</span><em>突围</em></h1>
+          <p class="english-title">VOID DESCENT</p>
+          <p class="subtitle">穿过星骸与失控的观测阵列，在不断坍缩的扇区中构筑属于你的战斗系统。移动、选择、进化，然后活到下一次天体脉冲。</p>
+          <div class="feature-grid">
+            <div><span class="feature-no">01</span><strong>低负担战斗</strong><span>自动锁敌，把注意力留给走位与构筑。</span></div>
+            <div><span class="feature-no">02</span><strong>规则级进化</strong><span>强化最终会改变武器的行为，而非只堆数字。</span></div>
+            <div><span class="feature-no">03</span><strong>星骸美学</strong><span>目标是让高强度战斗依然保有构图与层次。</span></div>
+          </div>
+          <div class="hero-actions">
+            <button id="startBtn" class="primary-btn" type="button"><span>进入玻璃荒原</span><i>→</i></button>
+            <p class="record"><span>PERSONAL ARCHIVE</span>历史最佳：<b id="bestText">00:00 · 0 击杀</b></p>
+          </div>
+        </div>
+        <div class="corner-copy corner-left">ASTRA FRAME<br>ONLINE</div>
+        <div class="corner-copy corner-right">SECTOR 01<br>GLASS EXPANSE</div>
+      </section>
+
+      <section id="levelUpScreen" class="overlay hidden">
+        <div class="panel upgrade-panel">
+          <div class="upgrade-heading">
+            <div><p class="eyebrow">SYNCHRONIZATION COMPLETE</p><h2>选择一项强化</h2></div>
+            <span>让本局构筑发生偏转</span>
+          </div>
+          <div id="upgradeCards" class="upgrade-grid"></div>
+        </div>
+      </section>
+
+      <section id="pauseScreen" class="overlay hidden">
+        <div class="panel compact-panel">
+          <p class="eyebrow">TEMPORAL LOCK</p>
+          <h2>时间已冻结</h2>
+          <p>按 P / Esc 或点击按钮继续当前航迹。</p>
+          <button id="resumeBtn" class="primary-btn" type="button"><span>解除冻结</span><i>→</i></button>
+        </div>
+      </section>
+
+      <section id="gameOverScreen" class="overlay hidden">
+        <div class="panel compact-panel result-panel">
+          <p class="eyebrow danger">SIGNAL LOST</p>
+          <h2>本次航迹终止</h2>
+          <p class="result-copy">数据已经回收。下一次下潜会从这里继续变得更完整。</p>
+          <div class="result-grid">
+            <div><span>生存时间</span><strong id="resultTime">00:00</strong></div>
+            <div><span>击杀</span><strong id="resultKills">0</strong></div>
+            <div><span>最高等级</span><strong id="resultLevel">1</strong></div>
+            <div><span>获得晶核</span><strong id="resultCores">0</strong></div>
+          </div>
+          <button id="restartBtn" class="primary-btn" type="button"><span>重新下潜</span><i>↻</i></button>
+        </div>
+      </section>
+
+      <div id="toast" class="toast hidden"></div>
+      <div id="touchHint" class="touch-hint">拖动左侧区域移动</div>
+    </section>
+
+    <footer>
+      <span><i class="status-dot"></i> CELESTIAL RUIN VISUAL PASS // ACTIVE</span>
+      <span>WASD / 方向键移动 · P / Esc 暂停</span>
+    </footer>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
