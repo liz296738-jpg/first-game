@@ -136,3 +136,28 @@
   - ui: DOM bindings.
 - Re-validated the changed runtime/system modules: parser checks pass.
 - Re-validated all 30 UI bindings against `index.html`: no missing IDs.
+
+
+## 2026-09-26 — Alpha 0.6 rendering, quality & Resonance pass
+
+- Extracted entity, hazard, spawn-warning, player and canvas-HUD rendering into `src/render/entities.js`.
+- Main `game.js` is now roughly 43 KB after this pass, down significantly from the ~76 KB monolith before modularization.
+- Added persistent VFX quality modes: Reduced / Standard / Cinematic.
+- VFX modes materially change background density, effect budgets and screen-shake intensity and persist through local storage.
+- Added boss-state environmental response so major encounters alter the background composition instead of only adding a large enemy.
+- Implemented the first three gameplay-changing Constellation Resonances:
+  - Corona Repeater — Solar 3 + Machine 2;
+  - Moonstep Mantle — Lunar 3 + Aether 2;
+  - Blackstar Rupture — Void 3 + Solar 2.
+- Resonance unlocks are surfaced with dedicated banner/toast feedback and active Resonance count appears in the build HUD.
+- Added `RESONANCES.md` to define design quality rules and future candidates.
+- Validation:
+  - changed JS modules parse successfully;
+  - all 31 current DOM bindings resolve;
+  - ES Module entrypoint remains intact.
+
+### Next
+- Extract combat/projectile simulation.
+- Extract player input/movement.
+- Add player death dissolve.
+- Playtest and tune the first three Resonances before expanding the pool.
