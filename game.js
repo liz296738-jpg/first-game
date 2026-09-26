@@ -1092,6 +1092,66 @@
     ctx.restore();
   }
 
+  function drawSpawnSignals() {
+    for (const signal of state.spawnSignals) {
+      const x = clamp(signal.x, 22, W - 22);
+      const y = clamp(signal.y, 22, H - 22);
+      const progress = 1 - signal.life / signal.max;
+      const pulse = .72 + Math.sin(progress * Math.PI * 7) * .18;
+      const color = signal.boss ? '#ffd98f' : signal.elite ? '#6cecff' : '#ff789b';
+      ctx.save();
+      ctx.globalAlpha = (.28 + progress * .58) * pulse;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = signal.boss ? 22 : 13;
+      ctx.lineWidth = signal.boss ? 2.2 : 1.4;
+      const radius = (signal.boss ? 34 : signal.elite ? 25 : 17) * (1.45 - progress * .45);
+      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha *= .65;
+      ctx.beginPath(); ctx.arc(x, y, radius * .58, 0, Math.PI * 2); ctx.stroke();
+      const inward = Math.atan2(H / 2 - y, W / 2 - x);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(inward) * (signal.boss ? 72 : 42), y + Math.sin(inward) * (signal.boss ? 72 : 42)); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawAfterimages() {
+    for (const afterimage of state.afterimages) {
+      const life = Math.max(0, afterimage.life / afterimage.max);
+      ctx.save();
+      ctx.globalAlpha = life * .25;
+      ctx.translate(afterimage.x, afterimage.y);
+      ctx.rotate(afterimage.angle);
+      ctx.fillStyle = biome().accent2;
+      ctx.shadowColor = biome().accent2;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(24,0);ctx.lineTo(2,8);ctx.lineTo(-8,17);ctx.lineTo(-13,7);ctx.lineTo(-20,0);ctx.lineTo(-13,-7);ctx.lineTo(-8,-17);ctx.lineTo(2,-8);ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawAttackTelegraph(e) {
+    if (!(e.attackCharge > 0) || !(e.attackChargeMax > 0)) return;
+    const progress = 1 - e.attackCharge / e.attackChargeMax;
+    const color = e.boss ? '#ffd98f' : '#7be9ff';
+    const length = e.boss ? 330 : 180;
+    ctx.save();
+    ctx.globalAlpha = .22 + progress * .5;
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 1.1 + progress * 1.8;
+    ctx.setLineDash([9, 8]);
+    ctx.beginPath();
+    ctx.moveTo(e.x + Math.cos(e.attackAngle) * (e.r + 8), e.y + Math.sin(e.attackAngle) * (e.r + 8));
+    ctx.lineTo(e.x + Math.cos(e.attackAngle) * length, e.y + Math.sin(e.attackAngle) * length);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 8 + progress * 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+    ctx.restore();
+  }
+
   function drawEnemy(e) {
     ctx.save();
     ctx.translate(e.x, e.y);
@@ -1171,6 +1231,7 @@
       ctx.fillStyle='rgba(255,225,235,.7)';ctx.fillRect(e.r*.08,-1,e.r*.34,2);
     }
     ctx.restore();
+    drawAttackTelegraph(e);
 
     if (e.elite || e.hp < e.maxHp || e.boss) {
       const w = e.r * (e.boss ? 3.1 : 2.35);
@@ -1289,6 +1350,7 @@
     ctx.translate(sx, sy);
 
     drawBackground();
+    drawSpawnSignals();
 
     for (const r of state.rings) {
       ctx.save();
@@ -1320,6 +1382,7 @@
       ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*.72,0,Math.PI*2);ctx.fill();ctx.restore();
     }
 
+    drawAfterimages();
     for (const e of state.enemies) drawEnemy(e);
     drawPlayer();
 
@@ -1375,12 +1438,25 @@
     ui.killsText.textContent = state.kills;
     ui.coresText.textContent = state.cores;
     ui.stageText.textContent = biome().name;
+    const dashReady = player.dashCooldown <= 0;
+    const dashRatio = dashReady ? 1 : 1 - player.dashCooldown / player.dashCooldownMax;
+    if (ui.dashFill) ui.dashFill.style.transform = 'scaleX(' + clamp(dashRatio, 0, 1) + ')';
+    if (ui.dashText) ui.dashText.textContent = dashReady ? 'READY' : player.dashCooldown.toFixed(1) + 's';
+    if (ui.dashBtn) ui.dashBtn.classList.toggle('cooling', !dashReady);
+    if (debugVisible && ui.debugPanel) {
+      ui.debugPanel.textContent =
+        'FPS ' + Math.round(fpsSmoothed) +
+        '\nENEMY ' + state.enemies.length + ' + ' + state.spawnSignals.length + ' queued' +
+        '\nPROJECTILE ' + (state.projectiles.length + state.enemyProjectiles.length) +
+        '\nFX ' + (state.particles.length + state.rings.length + state.afterimages.length);
+    }
     updateBuildTags();
   }
 
   function loop(now) {
     const dt = Math.min(.033, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
+    if (dt > 0) fpsSmoothed = lerp(fpsSmoothed, Math.min(144, 1 / dt), .08);
     update(dt);
     draw();
     updateHud();
@@ -1416,6 +1492,11 @@
   window.addEventListener('keydown', (ev) => {
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code)) ev.preventDefault();
     keys.add(ev.code);
+    if ((ev.code === 'Space' || ev.code === 'ShiftLeft' || ev.code === 'ShiftRight') && !ev.repeat) requestDash();
+    if (ev.code === 'F3' && !ev.repeat) {
+      debugVisible = !debugVisible;
+      if (ui.debugPanel) ui.debugPanel.classList.toggle('hidden', !debugVisible);
+    }
     if ((ev.code === 'KeyP' || ev.code === 'Escape') && !ev.repeat) {
       if (state.mode === 'playing') togglePause(true);
       else if (state.mode === 'paused') togglePause(false);
@@ -1434,6 +1515,7 @@
     else if (state.mode === 'paused') togglePause(false);
   });
   ui.resumeBtn.addEventListener('click', () => togglePause(false));
+  if (ui.dashBtn) ui.dashBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); requestDash(); });
 
   makeAtmosphere();
   renderBest();
