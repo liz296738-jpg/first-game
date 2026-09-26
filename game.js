@@ -8,6 +8,7 @@ import { drawBackground as renderBackground } from './src/render/background.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
+import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
 
 (() => {
   'use strict';
@@ -436,62 +437,6 @@ import { runEncounterDirector as directEncounter } from './src/systems/director.
     return slots;
   }
 
-  function spawnRiftHazard(x, y, radius = 52, warmup = 1.08, duration = 2.35, damage = 15) {
-    if (state.hazards.length >= BUDGET.hazards) return false;
-    const safeRadius = clamp(radius, 34, 82);
-    state.hazards.push({
-      x: clamp(x, safeRadius + 18, W - safeRadius - 18),
-      y: clamp(y, safeRadius + 18, H - safeRadius - 18),
-      r: safeRadius,
-      warmup,
-      maxWarmup: warmup,
-      duration,
-      maxDuration: duration,
-      damage,
-      hitTimer: 0,
-      phase: rand(0, Math.PI * 2),
-    });
-    if (!state.hazardTutorialShown) {
-      state.hazardTutorialShown = true;
-      showToast('空间裂隙：预警结束前离开区域', 1450);
-    }
-    return true;
-  }
-
-  function scheduleAmbientHazard() {
-    const angle = rand(0, Math.PI * 2);
-    const distance = rand(70, 210);
-    const x = player.x + Math.cos(angle) * distance;
-    const y = player.y + Math.sin(angle) * distance;
-    const scale = clamp(1 + state.time / 420, 1, 1.28);
-    spawnRiftHazard(x, y, 46 * scale, Math.max(.82, 1.12 - state.time / 700), 2.15, 13 + state.time / 90);
-  }
-
-  function updateHazards(dt) {
-    for (let i = state.hazards.length - 1; i >= 0; i--) {
-      const h = state.hazards[i];
-      if (h.warmup > 0) {
-        h.warmup -= dt;
-        continue;
-      }
-
-      h.duration -= dt;
-      h.hitTimer = Math.max(0, h.hitTimer - dt);
-      const dx = player.x - h.x;
-      const dy = player.y - h.y;
-      const rr = h.r + player.r * .3;
-      if (dx * dx + dy * dy <= rr * rr && h.hitTimer <= 0) {
-        const hit = takePlayerHit(h.damage);
-        if (hit) {
-          h.hitTimer = .78;
-          addRing(player.x, player.y, 30, '#ff789b', 2.2, .2);
-        }
-      }
-      if (h.duration <= 0) state.hazards.splice(i, 1);
-      if (state.mode === 'gameover') return;
-    }
-  }
-
   function takePlayerHit(amount) {
     if (player.invuln > 0) return false;
     if (player.shield > 0) {
@@ -659,12 +604,12 @@ import { runEncounterDirector as directEncounter } from './src/systems/director.
       if (state.hazardTimer <= 0) {
         const bossActive = state.enemies.some(e => e.boss) || state.spawnSignals.some(signal => signal.boss);
         const hazardCount = !bossActive && state.time > 110 && chance(.3) ? 2 : 1;
-        for (let i = 0; i < hazardCount; i++) scheduleAmbientHazard();
+        for (let i = 0; i < hazardCount; i++) scheduleHazard(state, player, W, H, () => showToast('空间裂隙：预警结束前离开区域', 1450));
         state.hazardTimer = rand(bossActive ? 10.5 : 8.2, bossActive ? 14.5 : 12.2);
       }
     }
 
-    updateHazards(dt);
+    simulateHazards(state, player, dt, takePlayerHit, addRing);
     if (state.mode === 'gameover') return;
 
     player.fireTimer -= dt;
