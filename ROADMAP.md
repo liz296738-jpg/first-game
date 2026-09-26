@@ -122,7 +122,7 @@
 
 ## 当前开发优先级
 
-1. 继续 Stage 0 模块化：优先抽离 Encounter Director、Hazard simulation 和实体渲染。
+1. 继续 Stage 0 模块化：下一步抽离实体渲染、Combat/Projectile simulation 与输入/移动。
 2. 完成 Stage 1 剩余项：死亡溶解、Boss/扇区背景响应、特效质量档位。
 3. 试玩并校准 Stage 2 的相位冲刺、预警、击退、危险区和遭遇预算。
 4. Stage 3 已开始：继续做前置条件、synergy、Keystone 与真正的 Constellation Resonance。
