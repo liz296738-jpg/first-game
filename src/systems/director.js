@@ -61,10 +61,18 @@ function scheduleEncounter(state, template, budget, queueEnemy, width, height) {
   } else if (template.id === 'needle-pincer') {
     [0.28, 0.5, 0.72].forEach(lane => add('swift', baseEdge, lane));
     [0.3, 0.5, 0.7].forEach(lane => add('swift', opposite, lane, false, 0.1 + sequence * 0.06));
+  } else if (template.id === 'glass-moths') {
+    [0.24, 0.42, 0.58, 0.76].forEach((lane, i) => {
+      add('moth', i % 2 ? opposite : baseEdge, lane, false, i * 0.09);
+    });
   } else if (template.id === 'bulwark-screen') {
     add('brute', baseEdge, 0.36);
     add('brute', baseEdge, 0.64);
     [0.18, 0.5, 0.82].forEach(lane => add('drone', baseEdge, lane, false, 0.12 + sequence * 0.06));
+  } else if (template.id === 'rift-seeders') {
+    add('seeder', baseEdge, 0.34);
+    add('seeder', opposite, 0.66, false, 0.22);
+    [0.22, 0.5, 0.78].forEach((lane, i) => add('drone', sideA, lane, false, 0.14 + i * 0.08));
   } else if (template.id === 'crossfire') {
     add('caster', baseEdge, 0.5);
     add('caster', opposite, 0.5, false, 0.16);
