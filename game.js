@@ -8,6 +8,7 @@ import { drawBackground as renderBackground } from './src/render/background.js';
 import { drawGem as renderGem, drawHazards as renderHazards, drawSpawnSignals as renderSpawnSignals, drawAfterimages as renderAfterimages, drawEnemy as renderEnemy, drawPlayer as renderPlayer, drawTouchStick as renderTouchStick, drawBanners as renderBanners } from './src/render/entities.js';
 import { AFFINITIES, buildUpgradePool } from './src/data/upgrades.js';
 import { applyUpgradeEffects } from './src/systems/upgrades.js';
+import { syncResonances, hasResonance, getActiveResonances } from './src/systems/resonances.js';
 import { runEncounterDirector as directEncounter } from './src/systems/director.js';
 import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazards } from './src/systems/hazards.js';
 
@@ -241,28 +242,42 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   function fireAt(target, source = player, damageScale = 1, color = '#c7f8ff', speedScale = 1, size = 4, pierce = null) {
     const base = Math.atan2(target.y - source.y, target.x - source.x);
     const count = source === player ? player.projectileCount : Math.min(1 + Math.floor(player.droneLevel / 2), 2);
-    for (let i = 0; i < count; i++) {
-      const localSpread = source === player ? player.spread : 0.08;
-      const offset = (i - (count - 1) / 2) * localSpread;
-      const a = base + offset;
-      const crit = source === player && Math.random() < player.crit;
-      const damage = (source === player ? player.damage : player.damage * .55) * damageScale * (crit ? 2 : 1);
+    const localSpread = source === player ? player.spread : 0.08;
+
+    const emitProjectile = (angle, localDamageScale = damageScale, localColor = color, allowCrit = true) => {
+      const crit = source === player && allowCrit && Math.random() < player.crit;
+      const damage = (source === player ? player.damage : player.damage * 0.55) * localDamageScale * (crit ? 2 : 1);
       state.projectiles.push({
-        x: source.x + Math.cos(a) * (source.r ? source.r + 7 : 18),
-        y: source.y + Math.sin(a) * (source.r ? source.r + 7 : 18),
-        vx: Math.cos(a) * player.bulletSpeed * speedScale,
-        vy: Math.sin(a) * player.bulletSpeed * speedScale,
+        x: source.x + Math.cos(angle) * (source.r ? source.r + 7 : 18),
+        y: source.y + Math.sin(angle) * (source.r ? source.r + 7 : 18),
+        vx: Math.cos(angle) * player.bulletSpeed * speedScale,
+        vy: Math.sin(angle) * player.bulletSpeed * speedScale,
         r: crit ? size + 1.2 : size,
         damage,
         life: 1.8,
         pierce: pierce ?? (source === player ? player.pierce : 0),
         crit,
-        color,
+        color: localColor,
         hitIds: new Set(),
       });
+    };
+
+    for (let i = 0; i < count; i++) {
+      const offset = (i - (count - 1) / 2) * localSpread;
+      emitProjectile(base + offset);
     }
+
+    if (source === player) {
+      player.primaryVolleyCounter += 1;
+      if (hasResonance(player, 'corona-repeater') && player.primaryVolleyCounter % 5 === 0) {
+        emitProjectile(base - 0.24, damageScale * 0.68, '#ffd693', false);
+        emitProjectile(base + 0.24, damageScale * 0.68, '#ffd693', false);
+        addRing(player.x, player.y, 23, '#ffd693', 1.8, 0.18);
+      }
+    }
+
     for (let i = 0; i < 3; i++) {
-      state.particles.push({ x: source.x, y: source.y, vx: rand(-30, 30), vy: rand(-30, 30), life: .18, max: .18, size: rand(1, 3), color });
+      state.particles.push({ x: source.x, y: source.y, vx: rand(-30, 30), vy: rand(-30, 30), life: 0.18, max: 0.18, size: rand(1, 3), color });
     }
   }
 
@@ -298,6 +313,7 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
   function damageEnemy(enemy, amount, hitColor = '#dffbff', crit = false) {
     enemy.hp -= amount;
     enemy.hit = 1;
+    enemy.lastHitCrit = crit;
     state.texts.push({ x: enemy.x, y: enemy.y - enemy.r, text: `${crit ? '✦ ' : ''}${Math.round(amount)}`, life: .48, color: crit ? '#ffe56b' : hitColor });
     for (let j = 0; j < 5; j++) state.particles.push({ x: enemy.x, y: enemy.y, vx: rand(-75,75), vy: rand(-75,75), life: .24, max: .24, size: rand(1,3), color: crit ? '#ffe56b' : hitColor });
     if (crit || enemy.elite || enemy.boss || chance(FEEL.impactRingChance)) {
@@ -325,7 +341,21 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
       showToast('Boss 击破 · 恢复生命并获得晶核', 1700);
       banner('Boss 已歼灭');
     }
-    if (player.lifesteal > 0 && !enemy.dead) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
+    if (player.lifesteal > 0) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
+
+    if (enemy.lastHitCrit && hasResonance(player, 'blackstar-rupture')) {
+      const ruptureRadius = 92;
+      const ruptureDamage = player.damage * 0.55;
+      addRing(enemy.x, enemy.y, ruptureRadius, '#d2a8ff', 3.4, 0.38);
+      for (const target of state.enemies) {
+        if (target === enemy || target.dead) continue;
+        const dx = target.x - enemy.x;
+        const dy = target.y - enemy.y;
+        if (dx * dx + dy * dy <= (ruptureRadius + target.r) * (ruptureRadius + target.r)) {
+          damageEnemy(target, ruptureDamage, '#d2a8ff', false);
+        }
+      }
+    }
     for (let i = 0; i < (enemy.boss ? 38 : enemy.elite ? 24 : 10); i++) {
       const a = Math.random() * Math.PI * 2;
       const s = rand(35, enemy.boss ? 230 : enemy.elite ? 190 : 120);
@@ -365,10 +395,17 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
       btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><span class="upgrade-affinity affinity-${up.affinity}">${affinity.label}<b>${affinity.code}</b></span><h3>${up.name}</h3><p>${up.desc}</p><em>${up.rarity}</em><small>选择强化 →</small>`;
       btn.addEventListener('click', () => {
         applyUpgradeEffects(player, up);
+        const unlocked = syncResonances(player);
         ui.levelUpScreen.classList.add('hidden');
         state.mode = 'playing';
         lastFrame = performance.now();
-        showToast(up.name);
+        if (unlocked.length) {
+          const resonance = unlocked[0];
+          banner(`共鸣 · ${resonance.name}`);
+          showToast(resonance.description, 1900);
+        } else {
+          showToast(up.name);
+        }
       }, { once: true });
       ui.upgradeCards.appendChild(btn);
     }
@@ -406,6 +443,11 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     player.dashAfterimageTimer = 0;
     player.invuln = Math.max(player.invuln, player.dashDuration + .05);
     player.angle = Math.atan2(dy, dx);
+    if (hasResonance(player, 'moonstep-mantle') && player.phaseGuardCooldown <= 0) {
+      player.phaseGuardTimer = 1.35;
+      player.phaseGuardCooldown = 7.5;
+      addRing(player.x, player.y, 44, '#c7dcff', 2.4, 0.32);
+    }
     addRing(player.x, player.y, 30, biome().accent2, 2.4, .25);
     addShake(3.2);
     return true;
@@ -460,6 +502,13 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
 
   function takePlayerHit(amount) {
     if (player.invuln > 0) return false;
+    if (player.phaseGuardTimer > 0) {
+      player.phaseGuardTimer = 0;
+      player.invuln = 0.28;
+      addRing(player.x, player.y, 54, '#c7dcff', 3.2, 0.34);
+      showToast('月步护幕抵消伤害', 650);
+      return true;
+    }
     if (player.shield > 0) {
       player.shield -= 1;
       player.invuln = .32;
@@ -544,6 +593,8 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     state.flash = Math.max(0, state.flash - dt * 3);
     state.shake *= Math.pow(.05, dt);
     player.invuln = Math.max(0, player.invuln - dt);
+    player.phaseGuardTimer = Math.max(0, player.phaseGuardTimer - dt);
+    player.phaseGuardCooldown = Math.max(0, player.phaseGuardCooldown - dt);
 
     const stageIndex = currentBiomeIndex();
     if (stageIndex !== state.lastStageIndex) {
