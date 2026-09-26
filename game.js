@@ -2,6 +2,8 @@ import { BUDGET, FEEL } from './src/config/runtime.js';
 import { BIOMES } from './src/data/biomes.js';
 import { ENEMY_CONFIGS, ENEMY_THREAT } from './src/data/enemies.js';
 import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
+import { clamp, distSq, rand, chance, lerp, alphaColor, formatTime } from './src/core/math.js';
+import { getUIElements } from './src/ui/elements.js';
 
 (() => {
   'use strict';
@@ -9,37 +11,7 @@ import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  const ui = {
-    startScreen: document.getElementById('startScreen'),
-    levelUpScreen: document.getElementById('levelUpScreen'),
-    pauseScreen: document.getElementById('pauseScreen'),
-    gameOverScreen: document.getElementById('gameOverScreen'),
-    startBtn: document.getElementById('startBtn'),
-    pauseBtn: document.getElementById('pauseBtn'),
-    resumeBtn: document.getElementById('resumeBtn'),
-    restartBtn: document.getElementById('restartBtn'),
-    upgradeCards: document.getElementById('upgradeCards'),
-    hud: document.getElementById('hud'),
-    levelText: document.getElementById('levelText'),
-    hpFill: document.getElementById('hpFill'),
-    xpFill: document.getElementById('xpFill'),
-    timerText: document.getElementById('timerText'),
-    waveText: document.getElementById('waveText'),
-    killsText: document.getElementById('killsText'),
-    coresText: document.getElementById('coresText'),
-    resultTime: document.getElementById('resultTime'),
-    resultKills: document.getElementById('resultKills'),
-    resultLevel: document.getElementById('resultLevel'),
-    resultCores: document.getElementById('resultCores'),
-    bestText: document.getElementById('bestText'),
-    toast: document.getElementById('toast'),
-    stageText: document.getElementById('stageText'),
-    buildTags: document.getElementById('buildTags'),
-    dashFill: document.getElementById('dashFill'),
-    dashText: document.getElementById('dashText'),
-    dashBtn: document.getElementById('dashBtn'),
-    debugPanel: document.getElementById('debugPanel'),
-  };
+  const ui = getUIElements();
 
   const W = canvas.width;
   const H = canvas.height;
@@ -139,20 +111,6 @@ import { ENCOUNTER_TEMPLATES } from './src/data/encounters.js';
     dashDirY: 0,
     dashAfterimageTimer: 0,
   };
-
-  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-  function distSq(a, b) { const dx = a.x - b.x; const dy = a.y - b.y; return dx * dx + dy * dy; }
-  function rand(min, max) { return min + Math.random() * (max - min); }
-  function chance(v) { return Math.random() < v; }
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function alphaColor(color, alpha) {
-    return color.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, (_, r, g, b) => `rgba(${r.trim()}, ${g.trim()}, ${b.trim()}, ${alpha})`);
-  }
-  function formatTime(sec) {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = Math.floor(sec % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  }
 
   function currentBiomeIndex() {
     return Math.floor(state.time / 75) % BIOMES.length;
