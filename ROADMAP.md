@@ -6,7 +6,7 @@
 目标：让项目能够稳定开发几个月而不是越改越乱。
 
 - [x] 导入当前可玩原型
-- [ ] 建立目录结构
+- [x] 建立目录结构
 - [ ] 拆分 simulation / rendering / data / ui
 - [x] 增加基础静态检查
 - [x] Render 部署配置
@@ -59,14 +59,14 @@
 
 ## Stage 3 — 数据驱动构筑
 - [ ] 武器数据表
-- [ ] 升级数据表
-- [ ] tag 系统
-- [ ] rarity
+- [x] 升级数据表
+- [x] tag 系统
+- [x] rarity
 - [ ] 前置条件
 - [ ] synergy
 - [ ] keystone
 - [ ] anomaly / cursed 强化
-- [ ] 当前 build 可视化
+- [x] 当前 build 可视化
 
 **退出条件**：可以不改核心战斗代码就增加新升级。
 
@@ -122,7 +122,7 @@
 
 ## 当前开发优先级
 
-1. 完成 Stage 0 的代码拆分，把配置、模拟、渲染和 UI 从单文件逐步解耦。
+1. 继续 Stage 0 模块化：优先抽离 Encounter Director、Hazard simulation 和实体渲染。
 2. 完成 Stage 1 剩余项：死亡溶解、Boss/扇区背景响应、特效质量档位。
-3. 试玩并校准已成型的 Stage 2：相位冲刺、预警、击退、地面危险区与 Encounter Director。
-4. 随后进入真正的数据驱动武器/升级体系。
+3. 试玩并校准 Stage 2 的相位冲刺、预警、击退、危险区和遭遇预算。
+4. Stage 3 已开始：继续做前置条件、synergy、Keystone 与真正的 Constellation Resonance。
