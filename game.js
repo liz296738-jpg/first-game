@@ -273,6 +273,9 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       xp: Math.round(c.xp * (boss ? 10 : elite ? 7 : 1)),
       elite,
       boss,
+      eliteModifier: elite && !boss ? (chance(.5) ? 'mirror' : 'volatile') : null,
+      mirrorShield: elite && !boss ? 1 : 0,
+      mirrorRecharge: 5.4,
       hit: 0,
       dead: false,
       phase: Math.random() * Math.PI * 2,
@@ -386,6 +389,13 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
   }
 
   function damageEnemy(enemy, amount, hitColor = '#dffbff', crit = false) {
+    if (enemy.eliteModifier === 'mirror' && enemy.mirrorShield > 0) {
+      enemy.mirrorShield = 0;
+      enemy.mirrorRecharge = 5.4;
+      amount *= 0.34;
+      addRing(enemy.x, enemy.y, enemy.r + 24, '#8ff4ff', 3.2, 0.34);
+      state.texts.push({ x: enemy.x, y: enemy.y - enemy.r - 12, text: 'MIRROR', life: .55, color: '#8ff4ff' });
+    }
     enemy.hp -= amount;
     enemy.hit = 1;
     enemy.lastHitCrit = crit;
@@ -427,6 +437,23 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       }
     }
     if (player.lifesteal > 0) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
+
+    if (enemy.eliteModifier === 'volatile') {
+      spawnRiftHazard(
+        state,
+        W,
+        H,
+        enemy.x,
+        enemy.y,
+        {
+          radius: 62,
+          warmup: 0.72,
+          duration: 2.45,
+          damage: enemy.damage * 0.72,
+        },
+      );
+      addRing(enemy.x, enemy.y, 58, '#ff789b', 3, 0.42);
+    }
 
     if (enemy.lastHitCrit && hasResonance(player, 'blackstar-rupture')) {
       const ruptureRadius = 92;
@@ -936,6 +963,14 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
             player.x = savedX; player.y = savedY;
           }
           e.pendingAttack = null;
+        }
+      }
+      if (e.eliteModifier === 'mirror' && e.mirrorShield <= 0) {
+        e.mirrorRecharge -= dt;
+        if (e.mirrorRecharge <= 0) {
+          e.mirrorShield = 1;
+          e.mirrorRecharge = 5.4;
+          addRing(e.x, e.y, e.r + 20, '#8ff4ff', 2, 0.28);
         }
       }
       e.hit = Math.max(0, e.hit - dt * 6);
