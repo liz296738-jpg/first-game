@@ -30,7 +30,8 @@ The project deliberately uses native ES Modules and static assets so Render can 
     │   ├── encounters.js
     │   └── upgrades.js
     ├── render/
-    │   └── background.js
+    │   ├── background.js
+    │   └── entities.js
     ├── systems/
     │   ├── director.js
     │   ├── hazards.js
@@ -74,11 +75,10 @@ Temporary orchestration layer. It still owns too much simulation and rendering l
 
 ## Next extraction targets
 
-1. Entity rendering.
-2. Combat/projectile simulation.
-3. Player input and movement.
-4. Upgrade/Constellation selection flow.
-5. Local save schema.
+1. Combat/projectile simulation.
+2. Player input and movement.
+3. Upgrade/Constellation selection flow.
+4. Local save schema.
 
 ## Validation baseline
 
