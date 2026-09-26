@@ -186,6 +186,20 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .upgrade-card small { position: absolute; left: 18px; bottom: 17px; color: var(--cyan); font: 700 9px/1 ui-monospace, monospace; letter-spacing: .11em; }
 
 
+
+.constellation-strip { display: flex; align-items: center; gap: 6px; margin-top: 7px; min-height: 18px; }
+.constellation-node { --node: #66728d; position: relative; width: 24px; height: 18px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.07); border-radius: 6px; color: #46516a; background: rgba(255,255,255,.018); overflow: hidden; opacity: .52; transition: opacity .18s ease, border-color .18s ease, transform .18s ease; }
+.constellation-node.active { opacity: 1; border-color: color-mix(in srgb, var(--node) 38%, transparent); box-shadow: inset 0 0 14px color-mix(in srgb, var(--node) 7%, transparent); }
+.constellation-node > i { position: absolute; width: 3px; height: 3px; border-radius: 50%; left: 3px; top: 3px; background: var(--node); box-shadow: 0 0 7px var(--node); }
+.constellation-node > b { font: 800 7px/1 ui-monospace, monospace; color: var(--node); }
+.constellation-node > em { position: absolute; right: 3px; top: 2px; color: #8c99b6; font: 700 6px/1 ui-monospace, monospace; font-style: normal; }
+.constellation-node > small { position: absolute; left: 0; bottom: 0; height: 1px; width: calc(var(--fill) * 100%); background: var(--node); box-shadow: 0 0 6px var(--node); }
+.constellation-node.affinity-solar { --node: #ffd693; }
+.constellation-node.affinity-lunar { --node: #c7dcff; }
+.constellation-node.affinity-void { --node: #d2a8ff; }
+.constellation-node.affinity-aether { --node: #8ff4ff; }
+.constellation-node.affinity-machine { --node: #9ff2c3; }
+
 .dash-readout { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 7px; margin-top: 8px; color: #59657e; font: 700 7px/1 ui-monospace, monospace; letter-spacing: .12em; }
 .dash-readout > i { position: relative; display: block; height: 3px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.06); }
 .dash-readout > i b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8c79ff, #68eaff); box-shadow: 0 0 9px rgba(104,234,255,.35); transform-origin: left center; }
