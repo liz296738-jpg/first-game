@@ -76,6 +76,7 @@ export function createPlayerState(width, height) {
     lifesteal: 0,
     affinities: { solar: 0, lunar: 0, void: 0, aether: 0, machine: 0 },
     resonances: {},
+    anomalies: [],
     primaryVolleyCounter: 0,
     phaseGuardTimer: 0,
     phaseGuardCooldown: 0,
