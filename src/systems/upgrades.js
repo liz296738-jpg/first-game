@@ -1,3 +1,29 @@
+import { UPGRADE_DEFINITIONS } from '../data/upgrades.js';
+
+function requirementValue(player, requirement) {
+  if (requirement.source === 'affinity') {
+    return player.affinities?.[requirement.key] || 0;
+  }
+
+  return player[requirement.key];
+}
+
+export function meetsUpgradeRequirements(player, upgrade) {
+  return (upgrade.requirements || []).every(requirement => {
+    const value = requirementValue(player, requirement);
+
+    if (requirement.min !== undefined && value < requirement.min) return false;
+    if (requirement.max !== undefined && value > requirement.max) return false;
+    if (requirement.equals !== undefined && value !== requirement.equals) return false;
+
+    return true;
+  });
+}
+
+export function buildUpgradePool(player) {
+  return UPGRADE_DEFINITIONS.filter(upgrade => meetsUpgradeRequirements(player, upgrade));
+}
+
 export function applyUpgradeEffects(player, upgrade) {
   for (const effect of upgrade.effects || []) {
     if (effect.op === 'mul') {
