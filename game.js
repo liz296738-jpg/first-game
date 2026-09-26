@@ -998,6 +998,9 @@ import { scheduleAmbientHazard as scheduleHazard, updateHazards as simulateHazar
     if (player.novaLevel) tags.push(`新星 ${player.novaLevel}`);
     if (player.droneLevel) tags.push(`无人机 ${player.droneLevel}`);
     if (player.shield) tags.push(`护盾 ${player.shield}`);
+    if (player.phaseGuardTimer > 0) tags.push('月步护幕');
+    const resonanceCount = getActiveResonances(player).length;
+    if (resonanceCount) tags.push(`共鸣 ${resonanceCount}`);
     ui.buildTags.innerHTML = tags.map(t => `<span>${t}</span>`).join('');
   }
 
