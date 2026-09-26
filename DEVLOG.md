@@ -224,3 +224,42 @@
 - Playtest Astral Needle vs Halo Array for risk/reward and upgrade-pool quality.
 - Begin Stage 4 vertical slice work: Glass Expanse environmental objective and anomaly event framework.
 - Design The Observatory boss as an authored encounter rather than scaling the current placeholder boss.
+
+
+## 2026-09-26 — Alpha 0.9 Glass Expanse vertical slice
+
+- The first sector is now explicitly **Glass Expanse / 玻璃荒原** with fractured distant glass megastructures and sector-specific mission pacing.
+- Added the first world-space environmental objective: **Mirror Relay / 镜面中继站**.
+  - holding the field builds synchronization;
+  - leaving decays progress;
+  - completion grants cores, XP and repair.
+- Added the first authored world event: **Falling Star / 坠星回收**.
+  - reach the object before its countdown expires;
+  - success grants recovery rewards;
+  - failure converts the site into an active Rift hazard.
+- Objective → event → boss are deliberately sequenced so mechanics do not pile up unfairly.
+- Replaced the first placeholder boss with **The Observatory / 观测者**.
+  - Phase 1: single-axis telegraphed scan + Rift pressure;
+  - Phase 2 at 55% HP: outer-ring collapse, cross-scan, faster Rift pressure;
+  - scan beams stay anchored to the moving boss;
+  - active beams cancel immediately on boss death.
+- Added a dedicated Observatory silhouette, boss label, scan renderer, phase-change feedback and death-collapse feedback.
+- The sector background remains Glass Expanse until Observatory is destroyed, preventing mid-boss biome switching.
+- Expanded enemy ecology to six archetypes by adding:
+  - Glass Moth — orbit + telegraphed committed dive;
+  - Rift Seeder — standoff movement + telegraphed persistent hazard placement.
+- Added authored Encounter Director packs for Moths and Seeders.
+- Added two real elite modifier classes:
+  - Mirror — rechargeable one-hit mitigation layer;
+  - Volatile — creates a Rift hazard on death.
+- Added a compact mission readout to the HUD.
+- Added `SECTOR_ONE.md` with vertical-slice pacing and tuning questions.
+- Stage 4 checklist is functionally complete in code.
+- Validation:
+  - all changed JS modules parse successfully;
+  - all 34 DOM bindings resolve.
+
+### Next
+- Treat Stage 4 as a playtest target rather than immediately adding more content.
+- Tune relay hold duration, Falling Star timing, elite pressure and Observatory scan cadence from actual runs.
+- After the vertical slice is stable, begin Stage 5 with a third genuinely different weapon and expanded build ecology.
