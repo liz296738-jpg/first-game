@@ -78,7 +78,8 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
   equipWeapon(player, getWeapon(selectedWeaponId));
 
   function currentBiomeIndex() {
-    return Math.floor(state.time / 75) % BIOMES.length;
+    if (!state.sectorBossDefeated) return 0;
+    return Math.min(BIOMES.length - 1, 1 + Math.floor(Math.max(0, state.time - 75) / 75));
   }
   function biome() {
     return BIOMES[currentBiomeIndex()];
@@ -729,10 +730,10 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       state.eliteTimer = Math.max(22, 34 - state.time / 75);
     }
 
-    if (state.time >= state.nextBossAt) {
+    if (state.time >= state.nextBossAt && !state.sectorBossDefeated) {
       queueEnemy('observatory', true, true);
-      state.nextBossAt += 58;
-      state.directorTimer = Math.max(state.directorTimer, 4.5);
+      state.nextBossAt = Infinity;
+      state.directorTimer = Math.max(state.directorTimer, 5.5);
     }
 
     if (state.time > 34) {
