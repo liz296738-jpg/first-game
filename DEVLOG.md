@@ -99,3 +99,25 @@
 - Add reduced/standard/high VFX quality paths.
 - Add boss/biome-driven background response and player death dissolve.
 - Then move into the data-driven upgrade/Constellation foundation.
+
+
+## 2026-09-26 — Alpha 0.5 modular foundation + Constellation data
+
+- Switched the browser entrypoint to native ES Modules without adding a build tool.
+- Extracted runtime budgets/feel constants, biome data, enemy data, encounter templates, math helpers, DOM bindings, state factories and the celestial background renderer from the monolithic runtime.
+- Reduced the main `game.js` from roughly 76 KB before this refactor pass to about 60 KB while preserving current gameplay.
+- Added `ARCHITECTURE.md` to define module boundaries and future extraction rules.
+- Converted upgrades from inline anonymous mutation callbacks into declarative data + a shared effect interpreter.
+- Added the five Constellation affinities: Solar / Lunar / Void / Aether / Machine.
+- Player state now tracks per-run affinity investment.
+- Upgrade cards now surface affinity identity, and the HUD includes a compact Constellation Circuit strip showing investment across all five families.
+- Intentionally deferred Resonance/Keystone effects until they can be designed as true rule changes rather than rushed stat bonuses.
+- Validation:
+  - every current JS module parses after import/export stripping;
+  - all 30 DOM bindings resolve to IDs present in `index.html`;
+  - the game entrypoint is loaded as `type="module"`.
+
+### Next
+- Extract Encounter Director and ground-hazard simulation into systems modules.
+- Add VFX quality levels and reduced-effects accessibility path.
+- Design the first 3–5 true Resonances before implementing them.
