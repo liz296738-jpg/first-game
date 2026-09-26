@@ -67,7 +67,7 @@ export function updateEnemyProjectiles(
     const dy = projectile.y - player.y;
 
     if (dx * dx + dy * dy <= radius * radius) {
-      takePlayerHit(projectile.damage);
+      takePlayerHit(projectile.damage, projectile.source || 'enemy-projectile');
       projectile.life = 0;
       addRing(projectile.x, projectile.y, 34, projectile.color, 3, 0.24);
       if (state.mode === 'dying' || state.mode === 'gameover') return;
