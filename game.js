@@ -304,14 +304,26 @@
     boss: { r: 34, hp: 660, speed: 50, damage: 24, color: '#f6f8ff', xp: 60 },
   };
 
-  function spawnEnemy(kind = null, elite = false, boss = false) {
+  function randomSpawnPoint(boss = false) {
     const edge = Math.floor(Math.random() * 4);
     const margin = boss ? 56 : 42;
-    let x, y;
-    if (edge === 0) { x = rand(-margin, W + margin); y = -margin; }
-    else if (edge === 1) { x = W + margin; y = rand(-margin, H + margin); }
-    else if (edge === 2) { x = rand(-margin, W + margin); y = H + margin; }
-    else { x = -margin; y = rand(-margin, H + margin); }
+    if (edge === 0) return { x: rand(-margin, W + margin), y: -margin, edge };
+    if (edge === 1) return { x: W + margin, y: rand(-margin, H + margin), edge };
+    if (edge === 2) return { x: rand(-margin, W + margin), y: H + margin, edge };
+    return { x: -margin, y: rand(-margin, H + margin), edge };
+  }
+
+  function queueEnemy(kind = null, elite = false, boss = false) {
+    const pos = randomSpawnPoint(boss);
+    const max = boss ? 1.35 : elite ? .92 : .42;
+    state.spawnSignals.push({ kind, elite, boss, x: pos.x, y: pos.y, edge: pos.edge, life: max, max });
+    if (boss) { banner('异常质量正在接近'); showToast('高能反应：准备迎击', 1200); }
+  }
+
+  function spawnEnemy(kind = null, elite = false, boss = false, spawnPoint = null) {
+    const pos = spawnPoint || randomSpawnPoint(boss);
+    const x = pos.x;
+    const y = pos.y;
 
     const difficulty = 1 + state.time / 150;
     if (!kind) {
@@ -342,6 +354,10 @@
       phase: Math.random() * Math.PI * 2,
       shootTimer: rand(1.2, 2.4),
       burstTimer: rand(.8, 1.4),
+      attackCharge: 0,
+      attackChargeMax: 0,
+      attackAngle: 0,
+      pendingAttack: null,
     };
     state.enemies.push(enemy);
     if (boss) { banner('虚空先驱降临'); showToast('Boss 出现', 1600); }
@@ -682,18 +698,18 @@
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       const extra = state.time > 110 && chance(.34) ? 1 : 0;
-      for (let i = 0; i <= extra; i++) spawnEnemy();
+      for (let i = 0; i <= extra; i++) queueEnemy();
       state.spawnTimer = spawnRate;
     }
 
     state.eliteTimer -= dt;
     if (state.eliteTimer <= 0) {
-      spawnEnemy(null, true, false);
+      queueEnemy(null, true, false);
       state.eliteTimer = Math.max(16, 31 - state.time / 55);
     }
 
     if (state.time >= state.nextBossAt) {
-      spawnEnemy('boss', true, true);
+      queueEnemy('boss', true, true);
       state.nextBossAt += 58;
     }
 
@@ -724,6 +740,15 @@
           if (t) fireAt(t, d, 0.9 + player.droneLevel * .12, '#8dffcf', .82, 3.4, 0);
         });
         player.droneFireTimer = Math.max(.34, .96 - player.droneLevel * .12);
+      }
+    }
+
+    for (let i = state.spawnSignals.length - 1; i >= 0; i--) {
+      const signal = state.spawnSignals[i];
+      signal.life -= dt;
+      if (signal.life <= 0) {
+        spawnEnemy(signal.kind, signal.elite, signal.boss, signal);
+        state.spawnSignals.splice(i, 1);
       }
     }
 
@@ -761,8 +786,11 @@
         e.x += (baseDirX * dir - baseDirY * Math.sin(state.time * 2 + e.phase) * .1) * e.speed * dt;
         e.y += (baseDirY * dir + baseDirX * Math.sin(state.time * 2 + e.phase) * .1) * e.speed * dt;
         e.shootTimer -= dt;
-        if (e.shootTimer <= 0 && d < 540) {
-          enemyShoot(e, e.elite ? 2 : 1, e.elite ? 260 : 220);
+        if (e.shootTimer <= 0 && d < 540 && e.attackCharge <= 0) {
+          e.attackCharge = e.elite ? .52 : .46;
+          e.attackChargeMax = e.attackCharge;
+          e.attackAngle = Math.atan2(player.y - e.y, player.x - e.x);
+          e.pendingAttack = 'caster';
           e.shootTimer = e.elite ? 1.55 : 1.95;
         }
       } else if (e.boss) {
@@ -770,15 +798,33 @@
         e.x += (baseDirX - baseDirY * wobble) * e.speed * dt;
         e.y += (baseDirY + baseDirX * wobble) * e.speed * dt;
         e.burstTimer -= dt;
-        if (e.burstTimer <= 0) {
-          enemyShoot(e, 5, 250);
-          addRing(e.x, e.y, 56, '#ffd37c', 4, .32);
+        if (e.burstTimer <= 0 && e.attackCharge <= 0) {
+          e.attackCharge = .68;
+          e.attackChargeMax = .68;
+          e.attackAngle = Math.atan2(player.y - e.y, player.x - e.x);
+          e.pendingAttack = 'boss';
           e.burstTimer = 1.35;
         }
       } else {
         const wobble = e.elite ? Math.sin(state.time * 3 + e.phase) * .18 : 0;
         e.x += (baseDirX - baseDirY * wobble) * e.speed * dt;
         e.y += (baseDirY + baseDirX * wobble) * e.speed * dt;
+      }
+      if (e.attackCharge > 0) {
+        e.attackCharge -= dt;
+        if (e.attackCharge <= 0 && e.pendingAttack) {
+          const savedX = player.x, savedY = player.y;
+          player.x = e.x + Math.cos(e.attackAngle) * 300;
+          player.y = e.y + Math.sin(e.attackAngle) * 300;
+          if (e.pendingAttack === 'boss') {
+            enemyShoot(e, 5, 250);
+            addRing(e.x, e.y, 56, '#ffd37c', 4, .32);
+          } else {
+            enemyShoot(e, e.elite ? 2 : 1, e.elite ? 260 : 220);
+          }
+          player.x = savedX; player.y = savedY;
+          e.pendingAttack = null;
+        }
       }
       e.hit = Math.max(0, e.hit - dt * 6);
 
@@ -833,6 +879,11 @@
         state.gems.splice(i, 1);
         if (state.mode === 'upgrade') break;
       }
+    }
+
+    for (let i = state.afterimages.length - 1; i >= 0; i--) {
+      state.afterimages[i].life -= dt;
+      if (state.afterimages[i].life <= 0) state.afterimages.splice(i, 1);
     }
 
     for (let i = state.particles.length - 1; i >= 0; i--) {
