@@ -32,6 +32,7 @@
 - `DEVLOG.md`：开发记录。
 - `ARCHITECTURE.md`：当前代码结构、模块边界与重构原则。
 - `RESONANCES.md`：星图回路、已实现共鸣与后续设计规则。
+- `ANOMALIES.md`：高风险异常强化、代价原则与试玩问题。
 
 ## 部署
 
