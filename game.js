@@ -495,6 +495,34 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     }
   }
 
+  function triggerEventHorizon() {
+    const weapon = getWeapon(player.weaponId);
+    const radius = Math.max(128, player.orbitRadius * 2.25);
+    const baseDamage = weapon.base?.damage || 24;
+    const weaponScaling = Math.max(.6, player.damage / Math.max(1, baseDamage));
+    const collapseDamage = player.orbitDamage * .95 * weaponScaling;
+
+    addRing(player.x, player.y, radius * .34, '#d2a8ff', 4.2, .58);
+    addRing(player.x, player.y, radius * .68, '#c7dcff', 2.1, .72);
+    addShake(4.5);
+
+    for (const enemy of state.enemies) {
+      if (enemy.dead) continue;
+      const dx = player.x - enemy.x;
+      const dy = player.y - enemy.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      if (distance > radius + enemy.r) continue;
+
+      const pull = Math.min(44, 18 + (1 - distance / radius) * 32);
+      enemy.x += dx / distance * pull;
+      enemy.y += dy / distance * pull;
+      damageEnemy(enemy, collapseDamage, '#c9b9ff', false);
+    }
+
+    player.eventHorizonTimer = 6.4;
+    showToast('视界合唱 · 空间坍缩', 760);
+  }
+
   function getDroneSlots() {
     const slots = [];
     const count = player.droneLevel;
@@ -685,6 +713,11 @@ import { requestDash as tryDash, updatePlayerMovement } from './src/systems/move
     }
 
     orbitDamageTick(dt);
+
+    if (hasResonance(player, 'event-horizon-choir') && player.orbitCount > 0) {
+      player.eventHorizonTimer -= dt;
+      if (player.eventHorizonTimer <= 0) triggerEventHorizon();
+    }
 
     if (player.droneLevel > 0) {
       player.droneFireTimer -= dt;
