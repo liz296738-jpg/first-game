@@ -66,7 +66,7 @@ export function updateSectorOneObjectives({
     }
   }
 
-  if (!state.sectorEventStarted && state.time >= SECTOR_ONE_EVENT.startTime) {
+  if (!state.sectorEventStarted && state.sectorObjectiveComplete && state.time >= SECTOR_ONE_EVENT.startTime) {
     const pos = pointAwayFromPlayer(player, width, height, 92);
     state.sectorEventStarted = true;
     state.worldEvent = {
