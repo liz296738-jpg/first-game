@@ -19,6 +19,7 @@ import { updatePlayerProjectiles, updateEnemyProjectiles } from './src/systems/p
 import { equipWeapon } from './src/systems/weapons.js';
 import { beginPlayerDeath, updatePlayerDeath } from './src/systems/death.js';
 import { requestDash as tryDash, updatePlayerMovement } from './src/systems/movement.js';
+import { createRunTelemetry, recordDamage, recordFrameHealth, syncRunMilestones, finalizeRunTelemetry, savePlaytestRun, summarizeWeaponRuns } from './src/systems/telemetry.js';
 import { updateSectorOneObjectives, sectorMissionText } from './src/systems/sector-one.js';
 import { spawnRiftHazard } from './src/systems/hazards.js';
 import { initializeObservatory, updateObservatory, updateBossBeams } from './src/systems/observatory.js';
@@ -182,6 +183,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
   function resetState() {
     Object.assign(state, createRunState('playing'));
     resetPlayer();
+    state.telemetry = createRunTelemetry(player.weaponId);
     makeAtmosphere();
   }
 
@@ -206,7 +208,50 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
     lastFrame = performance.now();
   }
 
+  function telemetrySourceLabel(source) {
+    const labels = {
+      'contact': '接触伤害',
+      'enemy-projectile': '普通弹幕',
+      'elite-projectile': '精英弹幕',
+      'observatory-projectile': 'Boss 弹幕',
+      'observatory-scan': '观测者扫描',
+      'observatory-rift': '观测者裂隙',
+      'falling-star-rift': '坠星裂隙',
+      'seeder-rift': '播种者裂隙',
+      'volatile-rift': '易爆精英裂隙',
+      'rift': '空间裂隙',
+    };
+    if (source?.startsWith('contact:')) return `接触 · ${source.slice(8)}`;
+    return labels[source] || source || '未知';
+  }
+
+  function renderTelemetryResult(run, history) {
+    if (!ui.resultTelemetry) return;
+    const summary = summarizeWeaponRuns(history, run.weaponId);
+    const objective = run.objectiveDuration === null ? '未完成' : `${run.objectiveDuration.toFixed(1)}s`;
+    const boss = run.bossDuration === null ? (run.bossSpawn === null ? '未到达' : '未击破') : `${run.bossDuration.toFixed(1)}s`;
+    const scan = run.bossScansFired ? `${run.bossScanHits}/${run.bossScansFired}` : '—';
+    const fps = run.minFps === null ? '—' : `${run.minFps}`;
+    const historyText = summary
+      ? `${run.weaponName} · 最近 ${summary.runs} 局 ｜ 均存活 ${formatTime(summary.avgDuration || 0)} ｜ Boss到达 ${Math.round(summary.bossReachRate * 100)}% ｜ 击破 ${Math.round(summary.bossKillRate * 100)}% ｜ 扫描命中 ${summary.scanHitRate === null ? '—' : Math.round(summary.scanHitRate * 100) + '%'}`
+      : '尚无同武器历史记录';
+
+    ui.resultTelemetry.innerHTML = `
+      <div class="telemetry-title"><span>LOCAL PLAYTEST DATA</span><span>仅保存在本机浏览器</span></div>
+      <div class="telemetry-grid">
+        <div><small>镜面中继</small><b>${objective}</b></div>
+        <div><small>Boss 战</small><b>${boss}</b></div>
+        <div><small>扫描命中</small><b>${scan}</b></div>
+        <div><small>总承伤</small><b>${Math.round(run.damageTaken)}</b></div>
+        <div class="${run.deathSource === 'observatory-scan' ? 'warn' : ''}"><small>致死来源</small><b>${telemetrySourceLabel(run.deathSource)}</b></div>
+        <div class="${run.minFps !== null && run.minFps < 45 ? 'warn' : 'good'}"><small>最低 FPS</small><b>${fps}</b></div>
+      </div>
+      <div class="telemetry-history">${historyText}</div>
+    `;
+  }
+
   function gameOver() {
+    syncRunMilestones(state);
     state.mode = 'gameover';
     ui.hud.classList.add('hidden');
     ui.pauseScreen.classList.add('hidden');
@@ -229,6 +274,9 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
         ...anomalyTags,
       ].join('');
     }
+    const runTelemetry = finalizeRunTelemetry(state, player, getActiveResonances(player));
+    const history = savePlaytestRun(runTelemetry);
+    renderTelemetryResult(runTelemetry, history);
     updateBest();
   }
 
@@ -374,6 +422,13 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
         life: enemy.boss ? 5 : 4,
         color: enemy.boss ? '#ffd37c' : enemy.color,
         fromBoss: enemy.boss,
+        source: enemy.type === 'observatory'
+          ? 'observatory-projectile'
+          : enemy.elite
+            ? 'elite-projectile'
+            : enemy.boss
+              ? 'boss-projectile'
+              : 'enemy-projectile',
       });
     }
   }
@@ -450,6 +505,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
           warmup: 0.72,
           duration: 2.45,
           damage: enemy.damage * 0.72,
+          source: 'volatile-rift',
         },
       );
       addRing(enemy.x, enemy.y, 58, '#ff789b', 3, 0.42);
@@ -510,7 +566,12 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       btn.innerHTML = `<span class="upgrade-icon">${up.icon}</span><span class="upgrade-affinity affinity-${up.affinity}">${affinity.label}<b>${affinity.code}</b></span><h3>${up.name}</h3><p>${up.desc}</p>${tradeoff}<em>${up.rarity}</em><small>${up.kind === 'anomaly' ? '接受异常 →' : '选择强化 →'}</small>`;
       btn.addEventListener('click', () => {
         applyUpgradeEffects(player, up);
+        if (state.telemetry) {
+          state.telemetry.upgradesChosen += 1;
+          if (up.kind === 'anomaly') state.telemetry.anomaliesChosen += 1;
+        }
         const unlocked = syncResonances(player);
+        if (state.telemetry) state.telemetry.resonancesUnlocked += unlocked.length;
         ui.levelUpScreen.classList.add('hidden');
         state.mode = 'playing';
         lastFrame = performance.now();
@@ -610,13 +671,14 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
     return slots;
   }
 
-  function takePlayerHit(amount) {
+  function takePlayerHit(amount, source = 'contact') {
     if (player.invuln > 0) return false;
     if (player.phaseGuardTimer > 0) {
       player.phaseGuardTimer = 0;
       player.invuln = 0.28;
       addRing(player.x, player.y, 54, '#c7dcff', 3.2, 0.34);
       showToast('月步护幕抵消伤害', 650);
+      recordDamage(state.telemetry, 0, source, true);
       return true;
     }
     if (player.shield > 0) {
@@ -624,9 +686,11 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       player.invuln = .32;
       addRing(player.x, player.y, 60, '#dff7ff', 4, .42);
       showToast('护盾抵消伤害', 600);
+      recordDamage(state.telemetry, 0, source, true);
       return true;
     }
     player.hp -= amount;
+    recordDamage(state.telemetry, amount, source, false);
     player.invuln = .58;
     addShake(9);
     state.flash = .75;
@@ -745,6 +809,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
       banner,
       spawnHazard: spawnRiftHazard,
     });
+    syncRunMilestones(state);
     if (state.mode === 'upgrade') return;
 
     // Ambient pressure keeps the field alive; major difficulty comes from authored encounter packs.
@@ -893,6 +958,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
               warmup: e.elite ? 0.78 : 1.05,
               duration: e.elite ? 3.0 : 2.5,
               damage: e.damage * 0.62,
+              source: 'seeder-rift',
             },
           );
           addRing(e.x, e.y, e.r + 14, '#9f8cff', 2, 0.26);
@@ -977,7 +1043,7 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
 
       const minD = player.r + e.r;
       if (d < minD) {
-        const hitTaken = takePlayerHit(e.damage);
+        const hitTaken = takePlayerHit(e.damage, `contact:${e.type}`);
         if (hitTaken) {
           const knock = e.boss ? 310 : e.elite ? 250 : 205;
           player.vx += baseDirX * knock;
@@ -1172,9 +1238,13 @@ import { drawObservatoryBeams } from './src/render/observatory.js';
   }
 
   function loop(now) {
-    const dt = Math.min(.033, Math.max(0, (now - lastFrame) / 1000));
+    const rawDt = Math.max(0, (now - lastFrame) / 1000);
+    const dt = Math.min(.033, rawDt);
     lastFrame = now;
-    if (dt > 0) fpsSmoothed = lerp(fpsSmoothed, Math.min(144, 1 / dt), .08);
+    if (rawDt > 0) fpsSmoothed = lerp(fpsSmoothed, Math.min(144, 1 / rawDt), .08);
+    if (state.mode === 'playing' && state.telemetry && rawDt > 0) {
+      recordFrameHealth(state.telemetry, 1 / rawDt, rawDt);
+    }
     update(dt);
     draw();
     updateHud();
