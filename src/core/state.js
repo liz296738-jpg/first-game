@@ -33,6 +33,9 @@ export function createRunState(mode = 'menu') {
     spawnSignals: [],
     afterimages: [],
     hazards: [],
+    deathFragments: [],
+    deathTimer: 0,
+    deathDuration: 0,
     lastStageIndex: 0,
   };
 }
